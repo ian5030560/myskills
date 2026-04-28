@@ -1,5 +1,6 @@
 sandbox
 Include
 Lib
-Scripts
+/Scripts/
 pyvenv.cfg
+/.agents/
