@@ -6,7 +6,7 @@ description: "Extract content from PDF papers and generate structured Markdown n
 metadata:
   starchild:
     emoji: "📄"
-    skillKey: paper-notes
+    skillKey: write-paper-notes
     requires:
       env: []
       bins: [python]
