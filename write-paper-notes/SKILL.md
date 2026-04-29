@@ -1,5 +1,5 @@
 ---
-name: paper-notes
+name: write-paper-notes
 version: 2.0.0
 description: "Extract content from PDF papers and generate structured Markdown notes. Use when user provides a PDF paper and wants to generate notes, summaries, or extract images/tables."
 
