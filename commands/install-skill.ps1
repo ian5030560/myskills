@@ -1,18 +1,27 @@
 # PowerShell script to copy skill directory
 param(
     [string]$source,
-    [string]$destination
+    [string]$destination,
+    [string]$skillName
 )
 
 if (-not $source -or -not $destination) {
-    Write-Host "Usage: .\install-skill.ps1 -source <path> -destination <path>" -ForegroundColor Yellow
+    Write-Host "Usage: .\install-skill.ps1 -source <path> -destination <path> [-skillName <name>]" -ForegroundColor Yellow
+    Write-Host "Example: .\install-skill.ps1 -source C:\myskills\write-paper-notes -destination C:\Users\user\.agents\skills -skillName write-paper-notes" -ForegroundColor Cyan
     exit 1
 }
 
-if (Test-Path $destination) {
-    Write-Host "Destination already exists. Overwriting..." -ForegroundColor Yellow
-    Remove-Item $destination -Recurse -Force
+# If skillName not provided, use source folder name
+if (-not $skillName) {
+    $skillName = Split-Path $source -Leaf
 }
 
-Copy-Item $source $destination -Recurse -Force
-Write-Host "Successfully copied $source to $destination" -ForegroundColor Green
+$destPath = Join-Path $destination $skillName
+
+if (Test-Path $destPath) {
+    Write-Host "Destination already exists. Overwriting..." -ForegroundColor Yellow
+    Remove-Item $destPath -Recurse -Force
+}
+
+Copy-Item $source $destPath -Recurse -Force
+Write-Host "Successfully installed $skillName to $destination" -ForegroundColor Green

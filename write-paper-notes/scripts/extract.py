@@ -6,12 +6,13 @@ Usage:
     python scripts/extract.py --pdf <pdf_path> --image-dir <output_dir>
 
 Dependencies:
-    pip install pypdf pypdf-table-extract
+    pip install pypdf pypdf-table-extract pytesseract Pillow
 """
 
 import argparse
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 from typing import Optional
@@ -33,6 +34,14 @@ try:
 except ImportError:
     print("[ERROR] pypdf-table-extract not installed. Run: pip install pypdf-table-extract")
     sys.exit(1)
+
+# These imports are used in OCR functions
+try:
+    from PIL import Image
+    import pytesseract
+    OCR_AVAILABLE = True
+except ImportError:
+    OCR_AVAILABLE = False
 
 
 def detect_heading_level(line: str) -> int:
@@ -56,10 +65,75 @@ def detect_heading_level(line: str) -> int:
         if re.match(pattern, line, re.IGNORECASE):
             return level
 
-    if line[0].isupper() and len(line) < 100 and not line[0].isdigit():
-        return 2
+    # Only treat as heading if it looks like a title (no punctuation in middle, reasonable length)
+    if line[0].isupper() and len(line) < 50 and not line[0].isdigit():
+        # Exclude lines with common sentence patterns
+        if not any(char in line[1:] for char in '.!?,;:'):
+            return 2
 
     return 4
+
+
+def check_tesseract_installed() -> tuple[bool, str]:
+    """
+    Check if tesseract is installed
+    Returns (is_installed, error_message)
+    """
+    try:
+        # Method 1: Check executable in PATH
+        if shutil.which("tesseract"):
+            return True, ""
+
+        # Method 2: Try importing and calling pytesseract
+        import pytesseract
+        pytesseract.get_tesseract_version()
+        return True, ""
+    except ImportError:
+        return False, """
+[ERROR] pytesseract is not installed. Install with: pip install pytesseract
+"""
+    except FileNotFoundError:
+        return False, """
+[WARNING] Tesseract OCR is not installed.
+
+If your AI supports image input (e.g., GPT-4V, Claude 3.5 Sonnet):
+    → Use --no-ocr flag (AI can view images directly, no OCR needed)
+    Example: python extract.py --pdf file.pdf --no-ocr
+
+If your AI is text-only (e.g., GPT-3.5, Claude 3 Opus):
+    → Install Tesseract for OCR:
+    1. Download: https://github.com/UB-Mannheim/tesseract/wiki
+    2. Install to: C:\\Program Files\\Tesseract-OCR
+    3. Add to PATH: C:\\Program Files\\Tesseract-OCR
+
+Continuing without OCR (images will be extracted without OCR text)...
+"""
+    except Exception as e:
+        return False, f"[ERROR] Tesseract check failed: {e}"
+
+
+def ocr_image(image_path: Path) -> Optional[str]:
+    """Perform OCR on image, return None if failed"""
+    if not OCR_AVAILABLE:
+        return None
+    try:
+        img = Image.open(image_path)
+        text = pytesseract.image_to_string(img, lang='eng')
+        return text.strip() if text.strip() else None
+    except Exception as e:
+        print(f"[WARNING] OCR failed for {image_path.name}: {e}", file=sys.stderr)
+        return None
+
+
+def should_run_ocr(no_ocr_flag: bool) -> tuple[bool, str]:
+    """Returns (should_run_ocr, warning_message)"""
+    if no_ocr_flag:
+        return False, ""
+
+    installed, error_msg = check_tesseract_installed()
+    if not installed:
+        return False, error_msg
+    return True, ""
 
 
 def level_to_markdown(level: int) -> str:
@@ -100,6 +174,8 @@ def clean_text(text: str) -> str:
 
 def extract_page_text(reader: PdfReader, page_num: int) -> list:
     """Extract text from single page, return paragraphs with heading levels"""
+    if page_num < 1 or page_num > len(reader.pages):
+        return []
     page = reader.pages[page_num - 1]
     text = page.extract_text()
     lines = text.split('\n')
@@ -152,8 +228,8 @@ def extract_page_text(reader: PdfReader, page_num: int) -> list:
     return paragraphs
 
 
-def extract_images(reader: PdfReader, output_dir: Path) -> dict:
-    """Extract images from PDF"""
+def extract_images(reader: PdfReader, output_dir: Path, run_ocr: bool) -> dict:
+    """Extract images from PDF, optionally run OCR"""
     images_dir = output_dir / "images"
     images_dir.mkdir(exist_ok=True)
 
@@ -165,10 +241,16 @@ def extract_images(reader: PdfReader, output_dir: Path) -> dict:
             img_path = images_dir / img_name
             with open(img_path, "wb") as f:
                 f.write(img.data)
+
+            ocr_text = None
+            if run_ocr:
+                ocr_text = ocr_image(img_path)
+
             page_images.append({
                 'filename': img_name,
                 'page': page_num,
-                'index': img_index
+                'index': img_index,
+                'ocr_text': ocr_text
             })
         if page_images:
             extracted_images[page_num] = page_images
@@ -229,6 +311,8 @@ def format_output(reader: PdfReader, images: dict, tables: dict) -> str:
             for img in images[page_num]:
                 img_path = f"images/{img['filename']}"
                 lines.append(f"![Figure {img['index']}]({img_path})")
+                if img.get('ocr_text'):
+                    lines.append(f"**[OCR]** {img['ocr_text']}")
                 lines.append("")
 
         if page_num in tables:
@@ -244,20 +328,33 @@ def main():
     parser = argparse.ArgumentParser(description="Extract content from PDF papers")
     parser.add_argument("--pdf", required=True, help="Input PDF file path")
     parser.add_argument("--output-dir", required=False, help="Output directory (default: <pdf_filename>)")
+    parser.add_argument("--no-ocr", action="store_true",
+                       help="Disable OCR for extracted images (default: OCR enabled)")
     args = parser.parse_args()
 
     input_path = Path(args.pdf)
 
-    if args.output_dir:
-        output_dir = Path(args.output_dir)
+    # Check OCR configuration
+    if not args.no_ocr:
+        installed, error_msg = check_tesseract_installed()
+        if not installed:
+            print(error_msg, file=sys.stderr)
+            print("[WARNING] Continuing without OCR (images will be extracted without OCR text)", file=sys.stderr)
+            print("[INFO] If your AI supports image input (e.g., GPT-4V), use --no-ocr to suppress this warning", file=sys.stderr)
+            run_ocr = False
+        else:
+            print("[INFO] OCR enabled for images")
+            run_ocr = True
     else:
-        paper_name = input_path.stem
-        output_dir = Path.cwd() / paper_name
+        print("[INFO] OCR disabled (--no-ocr specified)")
+        print("[INFO] Assumes AI can view images directly (e.g., GPT-4V, Claude 3.5 Sonnet)")
+        run_ocr = False
 
     if not input_path.exists():
         print(f"[ERROR] File not found: {input_path}")
         sys.exit(1)
 
+    output_dir = Path(args.output_dir) if args.output_dir else Path.cwd() / input_path.stem
     output_dir.mkdir(exist_ok=True, parents=True)
 
     print(f"[INFO] Reading PDF: {input_path}")
@@ -266,7 +363,7 @@ def main():
     print(f"[INFO] Total pages: {len(reader.pages)}")
 
     print("[INFO] Extracting images...")
-    images = extract_images(reader, output_dir)
+    images = extract_images(reader, output_dir, run_ocr)
     print(f"[INFO] Extracted {sum(len(v) for v in images.values())} images")
 
     print("[INFO] Extracting tables...")

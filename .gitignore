@@ -1,6 +1,8 @@
-sandbox
-Include
-Lib
+/sandbox/
+/Include/
+/Lib/
 /Scripts/
 pyvenv.cfg
 /.agents/
+__pycache__
+/pytest_cache/
