@@ -36,17 +36,6 @@ def _mock_pymupdf_doc(num_pages=1):
     return mock_doc
 
 
-def _mock_page_chunks(num_pages=1):
-    """Create mock return value for pymupdf4llm.to_markdown(page_chunks=True)"""
-    chunks = []
-    for i in range(num_pages):
-        chunks.append({
-            "metadata": {"page_number": i + 1, "page_count": num_pages},
-            "text": "Content of page {}".format(i + 1)
-        })
-    return chunks
-
-
 class TestExtractPdf:
     """Tests for extract_pdf() function"""
 
@@ -58,24 +47,10 @@ class TestExtractPdf:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            mock_p4llm.to_markdown.return_value = []
+            mock_p4llm.to_markdown.return_value = "Sample markdown content"
 
             result = extract_pdf("test.pdf", output_dir, use_ocr=False)
             assert isinstance(result, str)
-
-    def test_includes_page_separator(self, tmp_path):
-        """Output should have page separators"""
-        output_dir = tmp_path / "output"
-        mock_doc = _mock_pymupdf_doc(num_pages=2)
-
-        with patch('extract.pymupdf4llm') as mock_p4llm, \
-             patch('extract.pymupdf.open') as mock_pymupdf_open:
-            mock_pymupdf_open.return_value = mock_doc
-            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=2)
-
-            result = extract_pdf("test.pdf", output_dir, use_ocr=False)
-            assert "--- Page 1 ---" in result
-            assert "--- Page 2 ---" in result
 
     def test_calls_pymupdf4llm_correctly(self, tmp_path):
         """Should call pymupdf4llm.to_markdown with correct parameters"""
@@ -85,7 +60,7 @@ class TestExtractPdf:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=1)
+            mock_p4llm.to_markdown.return_value = "Sample markdown content"
 
             extract_pdf("test.pdf", output_dir, use_ocr=True, ocr_language="eng")
 
@@ -96,7 +71,6 @@ class TestExtractPdf:
             call_kwargs = mock_p4llm.to_markdown.call_args[1]
             assert call_kwargs['use_ocr'] is True
             assert call_kwargs['ocr_language'] == 'eng'
-            assert call_kwargs['page_chunks'] is True
             assert call_kwargs['write_images'] is True
             assert 'image_path' in call_kwargs
 
@@ -108,7 +82,7 @@ class TestExtractPdf:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=1)
+            mock_p4llm.to_markdown.return_value = "Sample markdown content"
 
             extract_pdf("test.pdf", output_dir, use_ocr=False)
 
@@ -124,7 +98,7 @@ class TestExtractPdf:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            mock_p4llm.to_markdown.return_value = []
+            mock_p4llm.to_markdown.return_value = "Sample markdown content"
 
             extract_pdf("test.pdf", output_dir, use_ocr=False)
 
@@ -139,7 +113,7 @@ class TestExtractPdf:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=1)
+            mock_p4llm.to_markdown.return_value = "Sample markdown content"
 
             extract_pdf("test.pdf", output_dir, use_ocr=False)
 
@@ -156,14 +130,13 @@ class TestExtractPdf:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=3)
+            mock_p4llm.to_markdown.return_value = "Page 1 content\n\nPage 2 content\n\nPage 3 content"
 
             result = extract_pdf("test.pdf", output_dir, use_ocr=False)
 
-            # Should have 3 page separators
-            assert result.count("--- Page") == 3
             # to_markdown should be called once (not per page)
             assert mock_p4llm.to_markdown.call_count == 1
+            assert isinstance(result, str)
 
     def test_extracts_all_images(self, tmp_path):
         """Should extract all images from PDF using pymupdf"""
@@ -173,7 +146,7 @@ class TestExtractPdf:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=2)
+            mock_p4llm.to_markdown.return_value = "Sample markdown with ![image](images/img.png)"
 
             extract_pdf("test.pdf", output_dir, use_ocr=False)
 

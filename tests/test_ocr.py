@@ -36,17 +36,6 @@ def _mock_pymupdf_doc(num_pages=1):
     return mock_doc
 
 
-def _mock_page_chunks(num_pages=1):
-    """Create mock return value for pymupdf4llm.to_markdown(page_chunks=True)"""
-    chunks = []
-    for i in range(num_pages):
-        chunks.append({
-            "metadata": {"page_number": i + 1, "page_count": num_pages},
-            "text": "Content of page {}".format(i + 1)
-        })
-    return chunks
-
-
 class TestOcrIntegration:
     """Tests for OCR integration with pymupdf4llm built-in Tesseract plugin"""
 
@@ -58,7 +47,7 @@ class TestOcrIntegration:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=1)
+            mock_p4llm.to_markdown.return_value = "Sample markdown content"
 
             extract_pdf("test.pdf", output_dir, use_ocr=True)
 
@@ -74,7 +63,7 @@ class TestOcrIntegration:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=1)
+            mock_p4llm.to_markdown.return_value = "Sample markdown content"
 
             extract_pdf("test.pdf", output_dir, use_ocr=False)
 
@@ -90,7 +79,7 @@ class TestOcrIntegration:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=1)
+            mock_p4llm.to_markdown.return_value = "Sample markdown content"
 
             extract_pdf("test.pdf", output_dir, use_ocr=True)
 
@@ -106,7 +95,7 @@ class TestOcrIntegration:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=1)
+            mock_p4llm.to_markdown.return_value = "Sample markdown content"
 
             extract_pdf("test.pdf", output_dir, use_ocr=True, ocr_language="eng+chi_sim")
 
@@ -122,13 +111,8 @@ class TestOcrIntegration:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            # Mock to_markdown to return page chunks with image
-            mock_p4llm.to_markdown.return_value = [
-                {
-                    "metadata": {"page_number": 1, "page_count": 1},
-                    "text": "## Introduction\n\n![Figure 1](images/figure_1_1.png)"
-                }
-            ]
+            # Mock to_markdown to return markdown with image
+            mock_p4llm.to_markdown.return_value = "## Introduction\n\n![Figure 1](images/figure_1_1.png)"
 
             result = extract_pdf("test.pdf", output_dir, use_ocr=True)
 
@@ -145,13 +129,8 @@ class TestOcrIntegration:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            # Mock to_markdown to return page chunks with OCR text (no prefix)
-            mock_p4llm.to_markdown.return_value = [
-                {
-                    "metadata": {"page_number": 1, "page_count": 1},
-                    "text": "## Introduction\n\nThis text was OCR'd from image."
-                }
-            ]
+            # Mock to_markdown to return markdown with OCR text (no prefix)
+            mock_p4llm.to_markdown.return_value = "## Introduction\n\nThis text was OCR'd from image."
 
             result = extract_pdf("test.pdf", output_dir, use_ocr=True)
 
@@ -168,12 +147,7 @@ class TestOcrIntegration:
             mock_pymupdf_open.return_value = mock_doc
             # pymupdf4llm auto-checks Tesseract; if missing, warns and skips OCR
             # We just verify the function completes without error
-            mock_p4llm.to_markdown.return_value = [
-                {
-                    "metadata": {"page_number": 1, "page_count": 1},
-                    "text": "Text without OCR"
-                }
-            ]
+            mock_p4llm.to_markdown.return_value = "Text without OCR"
 
             result = extract_pdf("test.pdf", output_dir, use_ocr=True)
             assert isinstance(result, str)

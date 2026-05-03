@@ -26,31 +26,6 @@ if sys.platform == 'win32':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 
-def _extract_all_images(doc, image_dir: Path) -> int:
-    """Extract ALL images from PDF using pymupdf directly"""
-    image_count = 0
-    for page_num, page in enumerate(doc):
-        image_list = page.get_images(full=True)
-
-        for img_index, img in enumerate(image_list):
-            xref = img[0]
-            base_image = doc.extract_image(xref)
-            image_bytes = base_image["image"]
-            image_ext = base_image["ext"]
-
-            # Save with unique name: pageNum_imgIndex.ext
-            img_filename = f"page{page_num + 1}_img{img_index + 1}.{image_ext}"
-            img_path = image_dir / img_filename
-
-            # Skip if already exists (avoid duplicates)
-            if not img_path.exists():
-                with open(img_path, "wb") as img_file:
-                    img_file.write(image_bytes)
-                image_count += 1
-
-    return image_count
-
-
 def extract_pdf(pdf_path: str, output_dir: Path, use_ocr: bool = True,
                ocr_language: str = "eng") -> str:
     """
@@ -63,35 +38,21 @@ def extract_pdf(pdf_path: str, output_dir: Path, use_ocr: bool = True,
         ocr_language: OCR language code (default: "eng")
 
     Returns:
-        Markdown string with page separators
+        Markdown string
     """
     output_dir.mkdir(exist_ok=True, parents=True)
     image_dir = output_dir / "images"
     image_dir.mkdir(exist_ok=True, parents=True)
 
-    # Extract ALL images from PDF (supplementary to pymupdf4llm)
-    with pymupdf.open(pdf_path) as doc:
-        image_count = _extract_all_images(doc, image_dir)
-        if image_count > 0:
-            print(f"[INFO] Extracted {image_count} images to {image_dir}")
-
-    # Use page_chunks=True to get structured output per page
-    page_chunks = pymupdf4llm.to_markdown(
+    pdf_markdown = pymupdf4llm.to_markdown(
         pdf_path,
-        page_chunks=True,
         use_ocr=use_ocr,
         ocr_language=ocr_language,
         image_path=str(image_dir),
         write_images=True,
     )
-
-    # Extract text from each page chunk and add custom page header
-    md_pages = [
-        f"--- Page {chunk['metadata']['page_number']} ---\n{chunk['text'].strip()}"
-        for chunk in page_chunks
-    ]
-
-    return "\n\n".join(md_pages)
+    
+    return pdf_markdown
 
 
 def main():
