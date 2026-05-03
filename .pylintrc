@@ -2,6 +2,10 @@
 # Add write-paper-notes/scripts to the import path
 init-hook='import sys; sys.path.insert(0, "C:/myskills/write-paper-notes/scripts")'
 
+[TYPECHECK]
+# Known third-party modules
+known-third-party=pymupdf4llm
+
 [MESSAGES CONTROL]
 # Disable some messages we don't care about in tests
 disable=C0114,C0115,C0116,E0401

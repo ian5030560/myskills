@@ -4,7 +4,7 @@ Tests for CLI argument parsing in extract.py
 import sys
 from pathlib import Path
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -17,40 +17,82 @@ from extract import main  # noqa: E402
 class TestArgumentParsing:
     """Tests for command line argument parsing"""
 
-    def test_default_args(self, mock_extract_deps):
+    def test_default_args(self, tmp_path):
         """Test parsing with only required --pdf argument"""
-        argv = ['extract.py', '--pdf', 'test.pdf']
-        with patch('sys.argv', argv):
-            # Expect exit when OCR not installed and no --no-ocr flag
-            with patch('extract.should_run_ocr', return_value=(False, "ERROR")):
-                with pytest.raises(SystemExit) as exc_info:
-                    main()
-                assert exc_info.value.code == 1
-
-    def test_with_output_dir(self, mock_extract_deps):
-        """Test parsing with --output-dir"""
-        argv = ['extract.py', '--pdf', 'test.pdf', '--output-dir', 'output']
-        with patch('sys.argv', argv):
-            with pytest.raises(SystemExit) as exc_info:
-                main()
-            # Should exit because no --no-ocr and tesseract not installed
-            assert exc_info.value.code == 1
-
-    def test_with_no_ocr(self, tmp_path, mock_extract_deps):
-        """Test parsing with --no-ocr flag"""
-        # Create a temporary PDF file
         pdf_path = tmp_path / "test.pdf"
         pdf_path.touch()
 
+        argv = ['extract.py', '--pdf', str(pdf_path)]
+
+        mock_doc = MagicMock()
+        mock_doc.__enter__ = MagicMock(return_value=mock_doc)
+        mock_doc.__exit__ = MagicMock(return_value=False)
+        mock_doc.__len__ = MagicMock(return_value=5)
+
+        # Calculate potential test directory in project root (prevent leakage)
+        project_root = Path(__file__).parent.parent
+        potential_test_dir = project_root / "test"
+
+        try:
+            with patch('sys.argv', argv), \
+                 patch('extract.extract_pdf') as mock_extract_pdf, \
+                 patch('extract.pymupdf.open') as mock_pymupdf_open:
+                mock_extract_pdf.return_value = "Sample markdown"
+                mock_pymupdf_open.return_value = mock_doc
+                main()
+                # Verify extract_pdf was called
+                assert mock_extract_pdf.called
+        finally:
+            # Cleanup: remove test directory if it was created in project root
+            if potential_test_dir.exists():
+                import shutil
+                shutil.rmtree(potential_test_dir, ignore_errors=True)
+
+    def test_with_output_dir(self, tmp_path):
+        """Test parsing with --output-dir"""
+        pdf_path = tmp_path / "test.pdf"
+        pdf_path.touch()
         output_dir = tmp_path / "output"
+
+        argv = ['extract.py', '--pdf', str(pdf_path), '--output-dir', str(output_dir)]
+
+        mock_doc = MagicMock()
+        mock_doc.__enter__ = MagicMock(return_value=mock_doc)
+        mock_doc.__exit__ = MagicMock(return_value=False)
+        mock_doc.__len__ = MagicMock(return_value=5)
+
+        with patch('sys.argv', argv), \
+             patch('extract.extract_pdf') as mock_extract_pdf, \
+             patch('extract.pymupdf.open') as mock_pymupdf_open:
+            mock_extract_pdf.return_value = "Sample markdown"
+            mock_pymupdf_open.return_value = mock_doc
+            main()
+            # Verify extract_pdf was called
+            assert mock_extract_pdf.called
+
+    def test_with_no_ocr(self, tmp_path):
+        """Test parsing with --no-ocr flag"""
+        pdf_path = tmp_path / "test.pdf"
+        pdf_path.touch()
+        output_dir = tmp_path / "output"
+
         argv = ['extract.py', '--pdf', str(pdf_path), '--no-ocr', '--output-dir', str(output_dir)]
-        with patch('sys.argv', argv):
-            main()  # Should not exit because --no-ocr is set and file exists
-            # Verify extract_images called with run_ocr=False (3rd argument)
-            mock_extract_deps['extract_images'].assert_called_once()
-            call_args = mock_extract_deps['extract_images'].call_args
-            # extract_images(reader, output_dir, run_ocr)
-            assert call_args[0][2] is False  # 3rd positional argument is run_ocr
+
+        mock_doc = MagicMock()
+        mock_doc.__enter__ = MagicMock(return_value=mock_doc)
+        mock_doc.__exit__ = MagicMock(return_value=False)
+        mock_doc.__len__ = MagicMock(return_value=5)
+
+        with patch('sys.argv', argv), \
+             patch('extract.extract_pdf') as mock_extract_pdf, \
+             patch('extract.pymupdf.open') as mock_pymupdf_open:
+            mock_extract_pdf.return_value = "Sample markdown"
+            mock_pymupdf_open.return_value = mock_doc
+            main()
+            # Verify extract_pdf was called with use_ocr=False
+            call_kwargs = mock_extract_pdf.call_args
+            # Check that use_ocr is False (keyword argument)
+            assert call_kwargs[1].get('use_ocr') is False
 
     def test_missing_pdf(self):
         """Test that missing --pdf raises error"""
@@ -80,11 +122,17 @@ class TestMainFunction:
 
         argv = ['extract.py', '--pdf', str(pdf_path), '--output-dir',
                 str(output_dir), '--no-ocr']
-        with patch('sys.argv', argv):
-            with patch('extract.PdfReader') as mock_reader:
-                mock_reader.return_value.pages = []
-                with patch('extract.extract_images', return_value={}):
-                    with patch('extract.extract_tables', return_value={}):
-                        with patch('extract.format_output', return_value=""):
-                            main()
-                            assert output_dir.exists()
+
+        mock_doc = MagicMock()
+        mock_doc.__enter__ = MagicMock(return_value=mock_doc)
+        mock_doc.__exit__ = MagicMock(return_value=False)
+        mock_doc.__len__ = MagicMock(return_value=5)
+
+        with patch('sys.argv', argv), \
+             patch('extract.extract_pdf') as mock_extract_pdf, \
+             patch('extract.pymupdf.open') as mock_pymupdf_open:
+            mock_extract_pdf.return_value = "Sample markdown"
+            mock_pymupdf_open.return_value = mock_doc
+            main()
+            # Verify output_dir was created
+            assert output_dir.exists()

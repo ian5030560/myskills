@@ -3,156 +3,183 @@ Tests for extraction functions in extract.py
 """
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, MagicMock
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "write-paper-notes" / "scripts"))
 
 # pylint: disable=wrong-import-position
-from extract import (clean_text, extract_page_text, format_output,  # noqa: E402
-                    extract_images, extract_tables)  # noqa: E402
+from extract import extract_pdf  # noqa: E402
 
 
-class TestCleanText:
-    """Tests for clean_text()"""
+def _mock_pymupdf_doc(num_pages=1):
+    """Create a mock pymupdf document that works as a context manager and supports iteration"""
+    mock_doc = MagicMock()
+    mock_doc.__enter__ = MagicMock(return_value=mock_doc)
+    mock_doc.__exit__ = MagicMock(return_value=False)
+    mock_doc.__len__ = MagicMock(return_value=num_pages)
+    mock_doc.extract_image = MagicMock(return_value={"image": b"fake", "ext": "png"})
 
-    def test_removes_extra_newlines(self):
-        """Should reduce multiple newlines to max 2"""
-        result = clean_text("a\n\n\nb")
-        assert "\n\n" in result
-        assert "\n\n\n" not in result
+    # Create mock pages for iteration
+    page_mocks = []
+    for _ in range(num_pages):
+        page_mock = MagicMock()
+        page_mock.get_images.return_value = [(1,0,0,0,0,0,0,0,0,0)]
+        page_mocks.append(page_mock)
 
-    def test_removes_extra_spaces(self):
-        """Should reduce multiple spaces to single space"""
-        result = clean_text("a   b")
-        assert "a b" == result
+    # Make mock_doc iterable - return pages in order
+    mock_doc.__iter__ = MagicMock(return_value=iter(page_mocks))
+    # Also support __getitem__ for direct access
+    mock_doc.__getitem__ = MagicMock(side_effect=lambda idx: page_mocks[idx])
 
-    def test_strips_whitespace(self):
-        """Should strip leading/trailing whitespace"""
-        result = clean_text("  hello  ")
-        assert result == "hello"
-
-    def test_normal_text_unchanged(self):
-        """Normal text should remain unchanged"""
-        text = "This is a normal paragraph."
-        assert clean_text(text) == text
+    return mock_doc
 
 
-class TestExtractPageText:
-    """Tests for extract_page_text()"""
-
-    def test_returns_list(self, mock_pdf_reader):
-        """Should return a list of paragraphs"""
-        page = mock_pdf_reader.pages[0]
-        page.extract_text.return_value = "1. Introduction\n\nThis is intro."
-
-        result = extract_page_text(mock_pdf_reader, 1)
-        assert isinstance(result, list)
-
-    def test_detects_heading(self, mock_pdf_reader):
-        """Should detect heading and return correct level"""
-        page = mock_pdf_reader.pages[0]
-        page.extract_text.return_value = "1. Introduction\n\nThis is intro."
-
-        result = extract_page_text(mock_pdf_reader, 1)
-        assert len(result) > 0
-        # First item should be a heading
-        assert result[0]['level'] <= 3
-
-    def test_paragraph_has_text(self, mock_pdf_reader):
-        """Each paragraph should have text content"""
-        page = mock_pdf_reader.pages[0]
-        page.extract_text.return_value = "1. Introduction\n\nThis is intro."
-
-        result = extract_page_text(mock_pdf_reader, 1)
-        for para in result:
-            assert 'text' in para
-            assert para['text']
-
-    def test_page_out_of_range(self, mock_pdf_reader):
-        """Should handle invalid page numbers"""
-        with patch.object(mock_pdf_reader, 'pages', []):
-            result = extract_page_text(mock_pdf_reader, 1)
-            assert result == []
+def _mock_page_chunks(num_pages=1):
+    """Create mock return value for pymupdf4llm.to_markdown(page_chunks=True)"""
+    chunks = []
+    for i in range(num_pages):
+        chunks.append({
+            "metadata": {"page_number": i + 1, "page_count": num_pages},
+            "text": "Content of page {}".format(i + 1)
+        })
+    return chunks
 
 
-class TestFormatOutput:
-    """Tests for format_output()"""
+class TestExtractPdf:
+    """Tests for extract_pdf() function"""
 
-    def test_includes_page_separator(self, mock_pdf_reader, sample_images_dict,
-                                   sample_tables_dict):
+    def test_returns_string(self, tmp_path):
+        """Should return a string"""
+        output_dir = tmp_path / "output"
+        mock_doc = _mock_pymupdf_doc(num_pages=0)
+
+        with patch('extract.pymupdf4llm') as mock_p4llm, \
+             patch('extract.pymupdf.open') as mock_pymupdf_open:
+            mock_pymupdf_open.return_value = mock_doc
+            mock_p4llm.to_markdown.return_value = []
+
+            result = extract_pdf("test.pdf", output_dir, use_ocr=False)
+            assert isinstance(result, str)
+
+    def test_includes_page_separator(self, tmp_path):
         """Output should have page separators"""
-        result = format_output(mock_pdf_reader, sample_images_dict,
-                              sample_tables_dict)
-        assert "--- Page 1 ---" in result
+        output_dir = tmp_path / "output"
+        mock_doc = _mock_pymupdf_doc(num_pages=2)
 
-    def test_includes_images(self, mock_pdf_reader, sample_images_dict,
-                            sample_tables_dict):
-        """Output should include image markdown"""
-        result = format_output(mock_pdf_reader, sample_images_dict,
-                              sample_tables_dict)
-        assert "![Figure" in result
+        with patch('extract.pymupdf4llm') as mock_p4llm, \
+             patch('extract.pymupdf.open') as mock_pymupdf_open:
+            mock_pymupdf_open.return_value = mock_doc
+            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=2)
 
-    def test_includes_tables(self, mock_pdf_reader, sample_images_dict,
-                             sample_tables_dict):
-        """Output should include table markdown"""
-        result = format_output(mock_pdf_reader, sample_images_dict,
-                              sample_tables_dict)
-        assert "Table 1" in result
+            result = extract_pdf("test.pdf", output_dir, use_ocr=False)
+            assert "--- Page 1 ---" in result
+            assert "--- Page 2 ---" in result
 
-    def test_empty_images_tables(self, mock_pdf_reader):
-        """Should handle empty images and tables"""
-        result = format_output(mock_pdf_reader, {}, {})
-        assert "--- Page 1 ---" in result
+    def test_calls_pymupdf4llm_correctly(self, tmp_path):
+        """Should call pymupdf4llm.to_markdown with correct parameters"""
+        output_dir = tmp_path / "output"
+        mock_doc = _mock_pymupdf_doc(num_pages=1)
 
+        with patch('extract.pymupdf4llm') as mock_p4llm, \
+             patch('extract.pymupdf.open') as mock_pymupdf_open:
+            mock_pymupdf_open.return_value = mock_doc
+            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=1)
 
-class TestExtractImages:
-    """Tests for extract_images()"""
+            extract_pdf("test.pdf", output_dir, use_ocr=True, ocr_language="eng")
 
-    def test_creates_images_dir(self, mock_pdf_reader, temp_output_dir):
+            # Check that to_markdown was called
+            assert mock_p4llm.to_markdown.called
+
+            # Check parameters
+            call_kwargs = mock_p4llm.to_markdown.call_args[1]
+            assert call_kwargs['use_ocr'] is True
+            assert call_kwargs['ocr_language'] == 'eng'
+            assert call_kwargs['page_chunks'] is True
+            assert call_kwargs['write_images'] is True
+            assert 'image_path' in call_kwargs
+
+    def test_ocr_disabled(self, tmp_path):
+        """Should disable OCR when use_ocr=False"""
+        output_dir = tmp_path / "output"
+        mock_doc = _mock_pymupdf_doc(num_pages=1)
+
+        with patch('extract.pymupdf4llm') as mock_p4llm, \
+             patch('extract.pymupdf.open') as mock_pymupdf_open:
+            mock_pymupdf_open.return_value = mock_doc
+            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=1)
+
+            extract_pdf("test.pdf", output_dir, use_ocr=False)
+
+            # Check use_ocr=False
+            call_kwargs = mock_p4llm.to_markdown.call_args[1]
+            assert call_kwargs['use_ocr'] is False
+
+    def test_creates_image_dir(self, tmp_path):
         """Should create images directory"""
-        extract_images(mock_pdf_reader, temp_output_dir, run_ocr=False)
-        assert (temp_output_dir / "images").exists()
+        output_dir = tmp_path / "output"
+        mock_doc = _mock_pymupdf_doc(num_pages=0)
 
-    def test_returns_dict(self, mock_pdf_reader, temp_output_dir):
-        """Should return a dictionary"""
-        # Mock page.images with proper data
-        mock_img = MagicMock()
-        mock_img.data = b"fake_image_data"
-        mock_pdf_reader.pages[0].images = [mock_img]
-        mock_pdf_reader.pages[1].images = []
+        with patch('extract.pymupdf4llm') as mock_p4llm, \
+             patch('extract.pymupdf.open') as mock_pymupdf_open:
+            mock_pymupdf_open.return_value = mock_doc
+            mock_p4llm.to_markdown.return_value = []
 
-        result = extract_images(mock_pdf_reader, temp_output_dir,
-                               run_ocr=False)
-        assert isinstance(result, dict)
+            extract_pdf("test.pdf", output_dir, use_ocr=False)
 
-    def test_no_images(self, mock_pdf_reader, temp_output_dir):
-        """Should handle pages with no images"""
-        mock_pdf_reader.pages[0].images = []
-        mock_pdf_reader.pages[1].images = []
+            # Verify images dir was created
+            assert (output_dir / "images").exists()
 
-        result = extract_images(mock_pdf_reader, temp_output_dir,
-                               run_ocr=False)
-        assert result == {}
+    def test_writes_images(self, tmp_path):
+        """Should set write_images=True"""
+        output_dir = tmp_path / "output"
+        mock_doc = _mock_pymupdf_doc(num_pages=1)
 
+        with patch('extract.pymupdf4llm') as mock_p4llm, \
+             patch('extract.pymupdf.open') as mock_pymupdf_open:
+            mock_pymupdf_open.return_value = mock_doc
+            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=1)
 
-class TestExtractTables:
-    """Tests for extract_tables()"""
+            extract_pdf("test.pdf", output_dir, use_ocr=False)
 
-    @patch('extract.pypdf_table_extraction')
-    def test_returns_dict(self, mock_pypdf_table_extraction,
-                          mock_pdf_reader, tmp_path):
-        """Should return a dictionary"""
-        # Mock table extraction
-        mock_table = MagicMock()
-        mock_table.page_numbers = [1]
-        mock_table.order = 0
-        mock_table.to_markdown.return_value = "| A |\n|---|\n| 1 |"
-        mock_pypdf_table_extraction.read_pdf.return_value = [mock_table]
+            # Verify write_images=True
+            call_kwargs = mock_p4llm.to_markdown.call_args[1]
+            assert call_kwargs['write_images'] is True
+            assert 'image_path' in call_kwargs
 
-        pdf_path = str(tmp_path / "test.pdf")
-        Path(pdf_path).touch()
+    def test_page_count_correct(self, tmp_path):
+        """Should process correct number of pages"""
+        output_dir = tmp_path / "output"
+        mock_doc = _mock_pymupdf_doc(num_pages=3)
 
-        result = extract_tables(mock_pdf_reader, pdf_path)
-        assert isinstance(result, dict)
+        with patch('extract.pymupdf4llm') as mock_p4llm, \
+             patch('extract.pymupdf.open') as mock_pymupdf_open:
+            mock_pymupdf_open.return_value = mock_doc
+            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=3)
+
+            result = extract_pdf("test.pdf", output_dir, use_ocr=False)
+
+            # Should have 3 page separators
+            assert result.count("--- Page") == 3
+            # to_markdown should be called once (not per page)
+            assert mock_p4llm.to_markdown.call_count == 1
+
+    def test_extracts_all_images(self, tmp_path):
+        """Should extract all images from PDF using pymupdf"""
+        output_dir = tmp_path / "output"
+        mock_doc = _mock_pymupdf_doc(num_pages=2)
+
+        with patch('extract.pymupdf4llm') as mock_p4llm, \
+             patch('extract.pymupdf.open') as mock_pymupdf_open:
+            mock_pymupdf_open.return_value = mock_doc
+            mock_p4llm.to_markdown.return_value = _mock_page_chunks(num_pages=2)
+
+            extract_pdf("test.pdf", output_dir, use_ocr=False)
+
+            # Verify image extraction was called
+            # Each page has 1 image, so extract_image should be called 2 times
+            assert mock_doc.extract_image.call_count == 2
+            # Verify images dir has files
+            image_dir = output_dir / "images"
+            assert image_dir.exists()

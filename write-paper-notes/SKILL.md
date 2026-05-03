@@ -1,6 +1,6 @@
 ---
 name: write-paper-notes
-version: 2.2.0
+version: 2.4.0
 description: "Extract content from PDF papers and generate structured Markdown notes. Default: OCR enabled for text-only AIs. Use --no-ocr for image-input AIs."
 
 metadata:
@@ -12,13 +12,7 @@ metadata:
       bins: [python]
     install:
       - kind: pip
-        package: pypdf
-      - kind: pip
-        package: pypdf-table-extraction
-      - kind: pip
-        package: pytesseract
-      - kind: pip
-        package: Pillow
+        package: pymupdf4llm
       - kind: system
         name: tesseract-ocr
         url: https://github.com/UB-Mannheim/tesseract/wiki
@@ -26,7 +20,7 @@ metadata:
 user-invocable: true
 ---
 
-Extract text, images, and tables from PDF academic papers and generate structured Markdown notes. 
+Extract text, images, and tables from PDF academic papers and generate structured Markdown notes using pymupdf4llm with built-in Tesseract OCR.
 
 **OCR Default**: Enabled (for text-only AIs that cannot view images)
 **When to use `--no-ocr`**: ONLY when your AI supports image input (e.g., GPT-4V, Claude 3.5 Sonnet)
@@ -35,19 +29,21 @@ Extract text, images, and tables from PDF academic papers and generate structure
 
 | Step | Action |
 |------|--------|
-| 0 | Install dependencies: `pip install pypdf pypdf-table-extraction pytesseract Pillow` |
-| 0.1 | Install Tesseract OCR (see OCR Configuration below) |
+| 0 | Install dependencies: `pip install pymupdf4llm` |
+| 0.1 | Install Tesseract OCR system-wide (see OCR Configuration below) |
 | 1 | **If your AI supports image input (e.g., GPT-4V)**: Run with `--no-ocr` |
 |   | `python scripts/extract.py --pdf <pdf> --no-ocr --output-dir <dir>` |
 |   | **If your AI is text-only**: Run without `--no-ocr` (requires Tesseract) |
 |   | `python scripts/extract.py --pdf <pdf> [--output-dir <dir>]` (output to stdout) |
-| 2 | AI organizes content by sections and subsections |
+| 2 | AI organizes content by sections and subsections (refer to **AI Organization Guidelines** below) |
 | 3 | Run `python scripts/save_notes.py --content "<AI_output>" --output-dir <dir>` |
 | 4 | Notes saved to `notes.md` in the same directory as images |
 
 ## OCR Configuration
 
-**Default behavior**: OCR enabled (for text-only AIs that cannot view images)
+**Default behavior**: OCR enabled via pymupdf4llm's built-in Tesseract plugin (for text-only AIs)
+
+**Smart OCR**: pymupdf4llm automatically detects pages needing OCR and only processes those regions (Hybrid OCR strategy)
 
 ### When to use `--no-ocr`
 
@@ -57,21 +53,21 @@ Extract text, images, and tables from PDF academic papers and generate structure
 
 **Do NOT use `--no-ocr` when your AI is text-only** (e.g., GPT-3.5, Claude 3 Opus):
 - These AIs need OCR text to understand image content
-- You must install Tesseract OCR instead
+- You must install Tesseract OCR system-wide
 
 ### Behavior Table
 
 | --no-ocr | Tesseract Installed | AI Type | Result |
 |----------|-------------------|---------|--------|
-| ❌ No | ✅ Yes | Text-only AI | OCR runs normally |
-| ❌ No | ❌ No | Text-only AI | **Error + Warning (see below)** |
-| ✅ Yes | Any | Image-input AI | OCR skipped, no error |
+| ❌ No | ✅ Yes | Text-only AI | OCR runs via pymupdf4llm Tesseract plugin |
+| ❌ No | ❌ No | Text-only AI | **Warning + Continue (OCR skipped)** |
+| ✅ Yes | Any | Image-input AI | OCR disabled, no error |
 | ❌ No | ❌ No | Image-input AI | **Use `--no-ocr`** |
 
-### Error + Warning (Tesseract not installed + no --no-ocr)
+### Warning (Tesseract not installed + no --no-ocr)
 
 ```
-[ERROR] Tesseract OCR is not installed, but --no-ocr was not specified.
+[WARNING] Tesseract OCR is not installed. pymupdf4llm requires system Tesseract for OCR.
 
 If your AI supports image input (e.g., GPT-4V, Claude 3.5 Sonnet):
     → Use --no-ocr flag (AI can view images directly, no OCR needed)
@@ -82,17 +78,19 @@ If your AI is text-only (e.g., GPT-3.5, Claude 3 Opus):
     1. Download: https://github.com/UB-Mannheim/tesseract/wiki
     2. Install to: C:\Program Files\Tesseract-OCR
     3. Add to PATH: C:\Program Files\Tesseract-OCR
+
+Continuing without OCR (images will be extracted without OCR text)...
 ```
 
 ### AI Decision Guide
 
-1. **You support image input (e.g., GPT-4V, Claude 3.5 Sonnet)**: 
+1. **You support image input (e.g., GPT-4V, Claude 3.5 Sonnet)**:
    - Use `--no-ocr` to skip OCR
    - You can view images directly, no OCR text needed
-2. **You only process text (e.g., GPT-3.5, Claude 3 Opus)**: 
+2. **You only process text (e.g., GPT-3.5, Claude 3 Opus)**:
    - Ensure Tesseract is installed before running
    - You need OCR text to understand image content
-3. **Tesseract not installed**: 
+3. **Tesseract not installed**:
    - If you support images: Use `--no-ocr`
    - If you're text-only: Install Tesseract first
 
@@ -102,15 +100,11 @@ If your AI is text-only (e.g., GPT-3.5, Claude 3 Opus):
 2. Run installer, check "Add to PATH" option
 3. Verify: `tesseract --version`
 
-## Heading Level Detection
+## Heading Detection
 
-| Pattern | Level | Example |
-|---------|-------|---------|
-| `I.`, `1.` + text | 2 | "1. Introduction" |
-| `1.1.` + text | 3 | "1.1. Methodology" |
-| `1.1.1.` + text | 4 | "1.1.1. Data Collection" |
-| `a.`, `(1)` + text | 4 | "a. First item" |
-| No pattern detected | 4 | Regular paragraph |
+Headings are automatically detected by pymupdf4llm based on font size hierarchy:
+- Larger fonts → Higher heading levels (##, ###, ####)
+- No manual pattern matching required
 
 ## AI Organization Guidelines
 
@@ -133,9 +127,7 @@ When AI processes the extracted Markdown output, it must:
 ### 1.1 Background
 
 ![Figure 1](images/figure_1_1.png)
-**[OCR]** This graph shows the comparison between...
 
-**Table 1: Results**
 | Method | Accuracy |
 |--------|----------|
 | A      | 95%      |
@@ -176,12 +168,20 @@ If OCR is disabled or unavailable:
 ...
 ```
 
+## How It Works
+
+pymupdf4llm handles all extraction automatically:
+- **Text & Headings**: Font-size based detection, no regex patterns needed
+- **Images**: Automatic extraction with smask handling (no black backgrounds)
+- **Tables**: Automatic detection with GitHub-Flavored Markdown output
+- **OCR**: Built-in Tesseract plugin, smart hybrid strategy (only OCR regions that need it)
+
 ## Script Usage
 
 ### Install Dependencies
 
 ```bash
-pip install pypdf pypdf-table-extraction pytesseract Pillow
+pip install pymupdf4llm
 ```
 
 ### Run Extraction
@@ -193,7 +193,7 @@ python scripts/extract.py --pdf <pdf_path> --no-ocr --output-dir <output_dir>
 
 **For text-only AIs (e.g., GPT-3.5, Claude 3 Opus) - OCR enabled by default:**
 ```bash
-# Requires Tesseract installed
+# Requires Tesseract installed system-wide
 python scripts/extract.py --pdf <pdf_path> [--output-dir <output_dir>]
 ```
 
@@ -206,7 +206,7 @@ Optional parameters:
 
 Outputs:
 - Markdown content to stdout (redirect to file)
-- `images/` - Image folder with extracted figures (with OCR text if enabled, or without if `--no-ocr`)
+- `images/` - Image folder with extracted figures
 
 ### Save AI-Organized Notes
 

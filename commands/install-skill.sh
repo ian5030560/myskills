@@ -1,5 +1,6 @@
 #!/bin/bash
 # Bash script to copy skill directory
+# Dependencies: pip install pymupdf4llm (system: Tesseract-OCR for OCR)
 
 if [ -z "$1" ] || [ -z "$2" ]; then
     echo "Usage: bash install-skill.sh <source> <destination> [skill_name]"

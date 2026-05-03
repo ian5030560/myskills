@@ -1,4 +1,5 @@
 # PowerShell script to copy skill directory
+# Dependencies: pip install pymupdf4llm (system: Tesseract-OCR for OCR)
 param(
     [string]$source,
     [string]$destination,
