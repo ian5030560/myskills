@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pymupdf
 import pymupdf4llm
-from pymupdf4llm.ocr import rapidocr_api
+from pymupdf4llm.ocr import tesseract_api
 
 def extract_pdf(pdf_path: str, output_dir: Path, use_ocr: bool = True,
                ocr_language: str = "eng") -> str:
@@ -37,7 +37,7 @@ def extract_pdf(pdf_path: str, output_dir: Path, use_ocr: bool = True,
     image_dir = output_dir / "images"
     image_dir.mkdir(exist_ok=True, parents=True)
 
-    ocr_function = rapidocr_api.exec_ocr if use_ocr else None
+    ocr_function = tesseract_api.exec_ocr if use_ocr else None
 
     pdf_markdown = pymupdf4llm.to_markdown(
         pdf_path,

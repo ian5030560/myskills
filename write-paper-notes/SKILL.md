@@ -11,10 +11,8 @@ metadata:
       env: []
       bins: [python]
     install:
-      - kind: pip
-        package: pymupdf4llm
-      - kind: pip
-        package: rapidocr-onnxruntime
+      - kind: system
+        package: tesseract-ocr
 
 user-invocable: true
 ---
@@ -29,17 +27,17 @@ Extract text, images, and tables from PDF academic papers and generate structure
 | Step | Action |
 |------|--------|
 | 0 | Install dependencies: `pip install pymupdf4llm` |
-| 0.1 | Install RapidOCR: `pip install rapidocr-onnxruntime` |
+| 0.1 | Install Tesseract system-wide (see OS-specific commands below) |
 | 1 | **If your AI supports image input (e.g., GPT-4V)**: Run with `--no-ocr` |
 |   | `python scripts/extract.py --pdf <pdf> --no-ocr --output-dir <dir>` |
-|   | **If your AI is text-only**: Run without `--no-ocr` (requires RapidOCR) |
+|   | **If your AI is text-only**: Run without `--no-ocr` (requires Tesseract) |
 |   | `python scripts/extract.py --pdf <pdf> [--output-dir <dir>]` (output to stdout) |
 | 2 | **REQUIRED**: AI MUST reorganize content into `notes.md` (see **Organized Notes Example** below) |
 | 3 | AI saves organized notes to `notes.md` in the output directory |
 
 ## OCR Configuration
 
-**Default behavior**: OCR enabled via pymupdf4llm's built-in RapidOCR plugin (for text-only AIs)
+**Default behavior**: OCR enabled via pymupdf4llm's built-in Tesseract plugin (for text-only AIs)
 
 **Smart OCR**: pymupdf4llm automatically detects pages needing OCR and only processes those regions (Hybrid OCR strategy)
 
@@ -51,43 +49,29 @@ Extract text, images, and tables from PDF academic papers and generate structure
 
 **Do NOT use `--no-ocr` when your AI is text-only** (e.g., GPT-3.5, Claude 3 Opus):
 - These AIs need OCR text to understand image content
-- RapidOCR is a Python package, no system install needed
+- Tesseract must be installed system-wide + `pip install pytesseract`
+
+### Dependencies
+
+**System Tesseract installation (required):**
+
+| OS | Install Command |
+|----|----------------|
+| **Windows** | `winget install -e --id UB-Mannheim.TesseractOCR` |
+| **macOS** | `brew install tesseract` |
+| **Ubuntu/Debian** | `sudo apt-get install tesseract-ocr` |
+| **Fedora** | `sudo dnf install tesseract` |
+| **Arch Linux** | `sudo pacman -S tesseract` |
+
+Verify installation: `tesseract --version`
 
 ### Behavior Table
 
-| --no-ocr | RapidOCR Installed | AI Type | Result |
+| --no-ocr | Tesseract Installed | AI Type | Result |
 |----------|---------------------|---------|--------|
-| ❌ No | ✅ Yes | Text-only AI | OCR runs via pymupdf4llm RapidOCR plugin |
-| ❌ No | ❌ No | Text-only AI | **Warning + Continue (OCR skipped)** |
+| ❌ No | ✅ Yes | Text-only AI | OCR runs via pymupdf4llm Tesseract plugin |
+| ❌ No | ❌ No | Text-only AI | **Error: Tesseract not installed** |
 | ✅ Yes | Any | Image-input AI | OCR disabled, no error |
-| ❌ No | ❌ No | Image-input AI | **Use `--no-ocr`** |
-
-### Warning (RapidOCR not installed + no --no-ocr)
-
-```
-[WARNING] RapidOCR is not installed. Install with: pip install rapidocr-onnxruntime
-
-If your AI supports image input (e.g., GPT-4V, Claude 3.5 Sonnet):
-    → Use --no-ocr flag (AI can view images directly, no OCR needed)
-    Example: python extract.py --pdf file.pdf --no-ocr
-
-If your AI is text-only (e.g., GPT-3.5, Claude 3 Opus):
-    → Install RapidOCR: pip install rapidocr-onnxruntime
-
-Continuing without OCR (images will be extracted without OCR text)...
-```
-
-### AI Decision Guide
-
-1. **You support image input (e.g., GPT-4V, Claude 3.5 Sonnet)**:
-   - Use `--no-ocr` to skip OCR
-   - You can view images directly, no OCR text needed
-2. **You only process text (e.g., GPT-3.5, Claude 3 Opus)**:
-   - Install RapidOCR: `pip install rapidocr-onnxruntime`
-   - You need OCR text to understand image content
-3. **RapidOCR not installed**:
-   - If you support images: Use `--no-ocr`
-   - If you're text-only: Install RapidOCR first
 
 ## Heading Detection
 
@@ -278,7 +262,7 @@ pymupdf4llm handles all extraction automatically:
 - **Text & Headings**: Font-size based detection, no regex patterns needed
 - **Images**: Automatic extraction with smask handling (no black backgrounds)
 - **Tables**: Automatic detection with GitHub-Flavored Markdown output
-- **OCR**: Built-in RapidOCR plugin, smart hybrid strategy (only OCR regions that need it)
+- **OCR**: Built-in Tesseract plugin, smart hybrid strategy (only OCR regions that need it)
 
 ## Script Usage
 
@@ -311,7 +295,8 @@ python scripts/extract.py --pdf <pdf_path> --no-ocr --output-dir <output_dir>
 
 **For text-only AIs (e.g., GPT-3.5, Claude 3 Opus) - OCR enabled by default:**
 ```bash
-# Requires: pip install rapidocr-onnxruntime
+# Requires: pip install pytesseract
+# System: Install Tesseract from https://github.com/UB-Mannheim/tesseract/wiki
 python scripts/extract.py --pdf <pdf_path> [--output-dir <output_dir>]
 ```
 

@@ -72,7 +72,7 @@ class TestOcrIntegration:
             assert call_kwargs['ocr_function'] is None
 
     def test_uses_builtin_tesseract_plugin(self, tmp_path):
-        """Should use built-in RapidOCR plugin (ocr_function=rapidocr_api.exec_ocr)"""
+        """Should use built-in Tesseract plugin (ocr_function=tesseract_api.exec_ocr)"""
         output_dir = tmp_path / "output"
         mock_doc = _mock_pymupdf_doc(num_pages=1)
 
@@ -83,10 +83,10 @@ class TestOcrIntegration:
 
             extract_pdf("test.pdf", output_dir, use_ocr=True)
 
-            # Verify ocr_function is rapidocr_api.exec_ocr
+            # Verify ocr_function is tesseract_api.exec_ocr
             call_kwargs = mock_p4llm.to_markdown.call_args[1]
-            from pymupdf4llm.ocr import rapidocr_api
-            assert call_kwargs['ocr_function'] == rapidocr_api.exec_ocr
+            from pymupdf4llm.ocr import tesseract_api
+            assert call_kwargs['ocr_function'] == tesseract_api.exec_ocr
 
     def test_ocr_language_passed(self, tmp_path):
         """Should pass ocr_language to pymupdf4llm"""
@@ -146,9 +146,10 @@ class TestOcrIntegration:
         with patch('extract.pymupdf4llm') as mock_p4llm, \
              patch('extract.pymupdf.open') as mock_pymupdf_open:
             mock_pymupdf_open.return_value = mock_doc
-            # pymupdf4llm auto-checks Tesseract; if missing, warns and skips OCR
+            # pymupdf4llm auto-checks Tesseract; if missing, raises error
             # We just verify the function completes without error
             mock_p4llm.to_markdown.return_value = "Text without OCR"
+            mock_p4llm.to_markdown.side_effect = None  # Reset side effect
 
             result = extract_pdf("test.pdf", output_dir, use_ocr=True)
             assert isinstance(result, str)

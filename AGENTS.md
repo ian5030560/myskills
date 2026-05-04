@@ -26,16 +26,25 @@ pytest tests/test_extract.py::TestExtractPdf::test_returns_string
 # Install dependencies
 pip install pymupdf4llm
 
+# Install Tesseract system-wide (required for OCR):
+#   Windows: winget install -e --id UB-Mannheim.TesseractOCR
+#   macOS: brew install tesseract
+#   Ubuntu/Debian: sudo apt-get install tesseract-ocr
+
 # Run extraction
 python write-paper-notes/scripts/extract.py --pdf <path> [--no-ocr] [--output-dir <dir>]
 ```
 
 ## OCR Behavior
 
-- **Default**: OCR enabled via pymupdf4llm's built-in RapidOCR plugin
+- **Default**: OCR enabled via pymupdf4llm's built-in Tesseract plugin
 - **`--no-ocr`**: disables OCR; use when AI supports image input (GPT-4V, Claude 3.5)
-- **RapidOCR not installed + no `--no-ocr`**: pymupdf4llm warns and skips OCR (no error)
-- **Dependency**: `pip install rapidocr-onnxruntime` (pure Python, no system install)
+- **Tesseract not installed + no `--no-ocr`**: pymupdf4llm raises error
+- **Dependencies**: 
+  - System: Install Tesseract:
+    - **Windows**: `winget install -e --id UB-Mannheim.TesseractOCR`
+    - **macOS**: `brew install tesseract`
+    - **Ubuntu/Debian**: `sudo apt-get install tesseract-ocr`
 
 ## Quirks
 
