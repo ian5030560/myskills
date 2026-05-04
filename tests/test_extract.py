@@ -69,7 +69,7 @@ class TestExtractPdf:
 
             # Check parameters
             call_kwargs = mock_p4llm.to_markdown.call_args[1]
-            assert call_kwargs['use_ocr'] is True
+            assert call_kwargs['ocr_function'] is not None  # RapidOCR enabled
             assert call_kwargs['ocr_language'] == 'eng'
             assert call_kwargs['write_images'] is True
             assert 'image_path' in call_kwargs
@@ -86,9 +86,9 @@ class TestExtractPdf:
 
             extract_pdf("test.pdf", output_dir, use_ocr=False)
 
-            # Check use_ocr=False
+            # Check ocr_function=None (OCR disabled)
             call_kwargs = mock_p4llm.to_markdown.call_args[1]
-            assert call_kwargs['use_ocr'] is False
+            assert call_kwargs['ocr_function'] is None
 
     def test_creates_image_dir(self, tmp_path):
         """Should create images directory"""
@@ -139,7 +139,7 @@ class TestExtractPdf:
             assert isinstance(result, str)
 
     def test_extracts_all_images(self, tmp_path):
-        """Should extract all images from PDF using pymupdf"""
+        """Should extract images via pymupdf4llm write_images=True"""
         output_dir = tmp_path / "output"
         mock_doc = _mock_pymupdf_doc(num_pages=2)
 
@@ -150,9 +150,10 @@ class TestExtractPdf:
 
             extract_pdf("test.pdf", output_dir, use_ocr=False)
 
-            # Verify image extraction was called
-            # Each page has 1 image, so extract_image should be called 2 times
-            assert mock_doc.extract_image.call_count == 2
-            # Verify images dir has files
+            # Verify pymupdf4llm.to_markdown was called with write_images=True
+            call_kwargs = mock_p4llm.to_markdown.call_args[1]
+            assert call_kwargs['write_images'] is True
+            assert 'image_path' in call_kwargs
+            # Verify images dir exists
             image_dir = output_dir / "images"
             assert image_dir.exists()
