@@ -19,7 +19,7 @@ Extract content from PDF academic papers and generate structured Markdown notes.
 
 **Via npm skills:**
 ```bash
-npm skills add ian5030560/myskills --skill write-paper-notes
+npx skills add ian5030560/myskills --skill write-paper-notes
 ```
 
 **Manual setup:**
