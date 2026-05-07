@@ -1,10 +1,20 @@
 # myskills
 
-Personal skills collection. Currently includes `write-paper-notes`.
+Personal skills collection. Built with [Star Child Skill Creator](https://skills.sh/starchild-ai-agent/official-skills/skill-creator).
+
+## skill-creator
+
+Create and scaffold new skills with proper frontmatter, directory structure, and validation. Use when building a new capability, integrating a new API, or extending the system with a repeatable workflow.
+
+### Installation
+
+```bash
+npx skills add ian5030560/myskills --skill skill-creator
+```
 
 ## write-paper-notes
 
-Extract content from PDF academic papers and generate structured Markdown notes.
+Extract content from PDF academic papers and generate structured Markdown notes. Default: OCR enabled for text-only AIs. Use `--no-ocr` for image-input AIs.
 
 ### Features
 
@@ -17,22 +27,6 @@ Extract content from PDF academic papers and generate structured Markdown notes.
 
 ### Installation
 
-**Via npm skills:**
 ```bash
 npx skills add ian5030560/myskills --skill write-paper-notes
-```
-
-**Manual setup:**
-```bash
-pip install pymupdf4llm
-
-# Install Tesseract system-wide:
-#   Windows: winget install -e --id UB-Mannheim.TesseractOCR
-#   macOS: brew install tesseract
-#   Ubuntu/Debian: sudo apt-get install tesseract-ocr
-```
-
-**Verify Tesseract:**
-```bash
-tesseract --version
 ```
