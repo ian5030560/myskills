@@ -2,16 +2,6 @@
 
 Personal skills collection. Built with [Star Child Skill Creator](https://skills.sh/starchild-ai-agent/official-skills/skill-creator).
 
-## skill-creator
-
-Create and scaffold new skills with proper frontmatter, directory structure, and validation. Use when building a new capability, integrating a new API, or extending the system with a repeatable workflow.
-
-### Installation
-
-```bash
-npx skills add ian5030560/myskills --skill skill-creator
-```
-
 ## write-paper-notes
 
 Extract content from PDF academic papers and generate structured Markdown notes. Default: OCR enabled for text-only AIs. Use `--no-ocr` for image-input AIs.
