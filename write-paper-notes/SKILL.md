@@ -49,7 +49,7 @@ Extract text, images, and tables from PDF academic papers and generate structure
 
 **Do NOT use `--no-ocr` when your AI is text-only** (e.g., GPT-3.5, Claude 3 Opus):
 - These AIs need OCR text to understand image content
-- Tesseract must be installed system-wide + `pip install pytesseract`
+- Tesseract must be installed system-wide
 
 ### Dependencies
 
@@ -185,77 +185,6 @@ Encoder-decoder with multi-head self-attention, position-wise FFN, and residual 
 ...
 ```
 
-### When OCR is disabled (AI supports image input, using `--no-ocr`)
-```markdown
-## 1. Introduction
-
-### 1.1 Background
-
-![Figure 1](images/figure_1_1.png)
-(AI can view this image directly, no OCR text needed)
-
-**Table 1: Results**
-...
-
-## 2. Related Work
-...
-```
-
-If OCR is disabled or unavailable:
-```markdown
-## 1. Introduction
-
-![Figure 1](images/figure_1_1.png)
-
-**Table 1: Results**
-...
-
-## 2. Related Work
-...
-```
-
-### When OCR is disabled (AI supports image input, using `--no-ocr`)
-```markdown
-## 1. Introduction
-
-### 1.1 Background
-
-![Figure 1](images/figure_1_1.png)
-(AI can view this image directly, no OCR text needed)
-
-**Table 1: Results**
-...
-
-## 2. Related Work
-...
-```
-
-If OCR is disabled or unavailable:
-```markdown
-## 1. Introduction
-
-![Figure 1](images/figure_1_1.png)
-
-**Table 1: Results**
-...
-
-## 2. Related Work
-...
-```
-
-If OCR is disabled or unavailable:
-```markdown
-## 1. Introduction
-
-![Figure 1](images/figure_1_1.png)
-
-**Table 1: Results**
-...
-
-## 2. Related Work
-...
-```
-
 ## How It Works
 
 pymupdf4llm handles all extraction automatically:
@@ -295,7 +224,6 @@ python scripts/extract.py --pdf <pdf_path> --no-ocr --output-dir <output_dir>
 
 **For text-only AIs (e.g., GPT-3.5, Claude 3 Opus) - OCR enabled by default:**
 ```bash
-# Requires: pip install pytesseract
 # System: Install Tesseract from https://github.com/UB-Mannheim/tesseract/wiki
 python scripts/extract.py --pdf <pdf_path> [--output-dir <output_dir>]
 ```

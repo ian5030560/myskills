@@ -2,27 +2,26 @@
 """
 Paper Notes Extractor - Extract content from PDF papers and generate structured Markdown notes
 
-Uses pymupdf4llm with built-in RapidOCR for automatic text, image, and table extraction.
+Uses pymupdf4llm with built-in Tesseract OCR for automatic text, image, and table extraction.
 
 Usage:
     python scripts/extract.py --pdf <pdf_path> --output-dir <output_dir>
 
 Dependencies:
-    pip install pymupdf4llm rapidocr-onnxruntime
+    pip install pymupdf4llm
 """
 
 import argparse
 import sys
 from pathlib import Path
 
-import pymupdf
 import pymupdf4llm
 from pymupdf4llm.ocr import tesseract_api
 
 def extract_pdf(pdf_path: str, output_dir: Path, use_ocr: bool = True,
                ocr_language: str = "eng") -> str:
     """
-    Extract PDF content to Markdown using pymupdf4llm with built-in RapidOCR.
+    Extract PDF content to Markdown using pymupdf4llm with built-in Tesseract OCR.
 
     Args:
         pdf_path: Path to input PDF file
