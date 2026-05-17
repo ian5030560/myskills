@@ -28,12 +28,10 @@ Extract text, images, and tables from PDF academic papers and generate structure
 |------|--------|
 | 0 | Install dependencies: `pip install pymupdf4llm` |
 | 0.1 | Install Tesseract system-wide (see OS-specific commands below) |
-| 1 | **If your AI supports image input (e.g., GPT-4V)**: Run with `--no-ocr` |
-|   | `python scripts/extract.py --pdf <pdf> --no-ocr --output-dir <dir>` |
-|   | **If your AI is text-only**: Run without `--no-ocr` (requires Tesseract) |
-|   | `python scripts/extract.py --pdf <pdf> [--output-dir <dir>]` (output to stdout) |
-| 2 | **REQUIRED**: AI MUST reorganize content into `notes.md` (see **Organized Notes Example** below) |
-| 3 | AI saves organized notes to `notes.md` in the output directory |
+| 1 | **Extraction**: Run the extraction script.<br>- **Image-input AI**: Use `--no-ocr` → `python scripts/extract.py --pdf <pdf> --no-ocr --output-dir <dir>`<br>- **Text-only AI**: Use default (requires Tesseract) → `python scripts/extract.py --pdf <pdf> [--output-dir <dir>]` |
+| 2 | **Content Analysis**:<br>- **Image-input AI**: Examine and describe each extracted image in `images/` folder<br>- **Text-only AI**: Use provided OCR text to understand image content |
+| 3 | **Organization**: **REQUIRED**: AI MUST reorganize content into `notes.md` (see **Organized Notes Example** below) |
+| 4 | AI saves organized notes to `notes.md` in the output directory |
 
 ## OCR Configuration
 
@@ -86,7 +84,7 @@ When AI processes the extracted Markdown output, it must:
 1. **Group content by heading levels**: Combine all paragraphs under the same heading (##, ###, ####)
 2. **Preserve hierarchy**: Keep the original heading structure intact
 3. **Insert images into appropriate sections**: Move `![Image](images/...)` references from page-end grouping into the subsection they belong to, based on OCR context and paper content
-4. **Improve image alt text**: Replace generic `Image` alt text with a short descriptive phrase (e.g., `![Transformer architecture]`)
+4. **Improve image alt text**: Use the image analysis from Step 2 to replace generic `Image` alt text with a precise descriptive phrase (e.g., `![Transformer architecture]`)
 5. **OCR text is for AI reference only**: Read OCR text after each image to understand its content, but do NOT copy raw OCR output into notes.md
 6. **Restructure content, don't just copy**: Transform original content into structured notes:
    - Extract key points → present as bullet/numbered lists
