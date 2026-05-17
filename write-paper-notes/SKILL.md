@@ -92,6 +92,8 @@ When AI processes the extracted Markdown output, it must:
    - **Flexible element ordering**: Rearrange text, lists, tables, and images based on content logic
 7. **Add summaries**: Add concise summaries for each section (##) and subsection (###, ####) ABOVE the content
 8. **Remove redundancy**: Merge related text only, never remove images
+9. **Math formulas**: Use LaTeX syntax for all mathematical expressions (e.g., `$a^2 + b^2 = c^2$` for inline, `$$\dots$$` for display equations)
+10. **Code formatting**: Use Markdown code blocks for multi-line code and inline code (`` ` ``) for variables, function names, or short commands
 
 ## Organized Notes Example
 
@@ -157,6 +159,17 @@ Encoder-decoder with multi-head self-attention, position-wise FFN, and residual 
 | d_ff | 2048 | Feed-forward inner dimension |
 | h (heads) | 8 | Attention heads |
 | d_k, d_v | 64 | Key/value dimensions |
+
+**Scaled Dot-Product Attention:**
+$$ \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right) V $$
+
+**Multi-Head Attention pseudocode:**
+```python
+def multi_head_attention(Q, K, V, h=8):
+    d_k = Q.shape[-1] // h
+    heads = [self_attention(Q_i, K_i, V_i) for i in range(h)]
+    return concat(heads)
+```
 ```
 
 **Key principles:**
@@ -168,6 +181,8 @@ Encoder-decoder with multi-head self-attention, position-wise FFN, and residual 
 - **Flexible ordering**: rearrange text, lists, tables, and images based on content logic
 - Group content by headings, not page numbers
 - Tables included only when referenced (not all tables preserved)
+- **Math formulas** use LaTeX syntax (e.g., `$$...$$`)
+- **Code** uses Markdown code blocks / inline code
 
 ## Output Format (stdout)
 
