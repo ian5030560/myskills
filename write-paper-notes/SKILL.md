@@ -1,6 +1,6 @@
 ---
 name: write-paper-notes
-version: 1.0.0
+version: 1.1.0
 description: "Extract content from PDF papers and generate structured Markdown notes. Default: OCR enabled for text-only AIs. Use --no-ocr for image-input AIs."
 
 metadata:
@@ -85,13 +85,15 @@ When AI processes the extracted Markdown output, it must:
 
 1. **Group content by heading levels**: Combine all paragraphs under the same heading (##, ###, ####)
 2. **Preserve hierarchy**: Keep the original heading structure intact
-3. **Preserve ALL images**: Keep every `![...](images/...)` markdown EXACTLY as-is, never delete or skip images
-4. **Restructure content, don't just copy**: Transform original content into structured notes:
+3. **Insert images into appropriate sections**: Move `![Image](images/...)` references from page-end grouping into the subsection they belong to, based on OCR context and paper content
+4. **Improve image alt text**: Replace generic `Image` alt text with a short descriptive phrase (e.g., `![Transformer architecture]`)
+5. **OCR text is for AI reference only**: Read OCR text after each image to understand its content, but do NOT copy raw OCR output into notes.md
+6. **Restructure content, don't just copy**: Transform original content into structured notes:
    - Extract key points → present as bullet/numbered lists
    - Organize comparative data → use tables (only when referencing Table X)
-   - **Flexible element ordering**: Except images (which stay fixed), rearrange text, lists, and tables based on content logic
-5. **Add summaries**: Add concise summaries for each section (##) and subsection (###, ####) ABOVE the content
-6. **Remove redundancy**: Merge related text only, never remove images
+   - **Flexible element ordering**: Rearrange text, lists, tables, and images based on content logic
+7. **Add summaries**: Add concise summaries for each section (##) and subsection (###, ####) ABOVE the content
+8. **Remove redundancy**: Merge related text only, never remove images
 
 ## Organized Notes Example
 
@@ -118,7 +120,7 @@ Recurrent models are sequential and hard to parallelize. Transformers solve this
 - Attention mechanism captures global dependencies directly
 - Superior performance on WMT 2014 translation task
 
-![Figure 1: Comparison of RNN vs Transformer](images/figure_1_1.png)
+![Transformer vs RNN architecture comparison](images/paper_0001_01.png)
 
 ## 2. Related Work
 
@@ -137,12 +139,12 @@ Previous approaches: CNNs (limited receptive field), RNNs (sequential), attentio
 ### Summary
 Encoder-decoder with multi-head self-attention, position-wise FFN, and residual connections.
 
-![Figure 2: Transformer Architecture](images/figure_2_1.png)
-
 **Encoder (6 layers):**
 - Multi-head self-attention (h=8 heads, d_k=64)
 - Position-wise feed-forward (d_ff=2048)
 - Residual connection + layer normalization
+
+![Transformer architecture with encoder-decoder stacks](images/paper_0003_01.png)
 
 **Decoder (6 layers):**
 - Masked multi-head self-attention (prevents future attending)
@@ -161,37 +163,46 @@ Encoder-decoder with multi-head self-attention, position-wise FFN, and residual 
 
 **Key principles:**
 - Summaries are added ABOVE each section/subsection
-- ALL images preserved exactly as extracted (`![...](images/...)`)
+- **OCR text is for AI reference only** — read it to understand images, do NOT include in output
+- Images are placed **within the relevant subsection**, not page-bottom grouping
+- Alt text is improved from generic `Image` to descriptive text
 - Content is **restructured, not copied**: use bullet points, lists, tables
-- **Flexible ordering**: Except images, rearrange text/lists/tables based on content logic
+- **Flexible ordering**: rearrange text, lists, tables, and images based on content logic
 - Group content by headings, not page numbers
 - Tables included only when referenced (not all tables preserved)
 
 ## Output Format (stdout)
 
-### When OCR is enabled (text-only AI)
+### Raw extraction output
+Images appear grouped at the end of each page's text, followed by OCR text (when enabled):
+
 ```markdown
 ## 1. Introduction
 
 ### 1.1 Background
-
-![Figure 1](images/figure_1_1.png)
+Text from pymupdf4llm...
 
 | Method | Accuracy |
 |--------|----------|
 | A      | 95%      |
 
-## 2. Related Work
-...
+![Image](images/paper_0001_01.png)
+OCR reference text for AI only — not included in notes.md
+
+![Image](images/paper_0001_02.png)
+More OCR context for understanding image placement
 ```
 
 ## How It Works
 
-pymupdf4llm handles all extraction automatically:
-- **Text & Headings**: Font-size based detection, no regex patterns needed
-- **Images**: Automatic extraction with smask handling (no black backgrounds)
+pymupdf4llm handles text, heading, and table extraction.
+Images are extracted directly via PyMuPDF (`fitz.Page.get_images`) for original-quality embedded images.
+
+- **Text & Headings**: Font-size based detection
+- **Images**: Extracted via `fitz.Page.get_images()` — original embedded format (JPEG/PNG), no re-encoding
 - **Tables**: Automatic detection with GitHub-Flavored Markdown output
-- **OCR**: Built-in Tesseract plugin, smart hybrid strategy (only OCR regions that need it)
+- **OCR**: Built-in Tesseract plugin for page text
+- **Image OCR**: Each extracted image is OCR'd (when enabled); the OCR text is for AI reference only — AI reads it to understand image content and place it in the right section, but does NOT copy it into notes.md
 
 ## Script Usage
 

@@ -36,11 +36,10 @@ class TestArgumentParsing:
         try:
             with patch('sys.argv', argv), \
                  patch('extract.extract_pdf') as mock_extract_pdf, \
-                 patch('extract.pymupdf.open') as mock_pymupdf_open:
+                 patch('extract.fitz.open') as mock_fitz_open:
                 mock_extract_pdf.return_value = "Sample markdown"
-                mock_pymupdf_open.return_value = mock_doc
+                mock_fitz_open.return_value = mock_doc
                 main()
-                # Verify extract_pdf was called
                 assert mock_extract_pdf.called
         finally:
             # Cleanup: remove test directory if it was created in project root
@@ -63,11 +62,10 @@ class TestArgumentParsing:
 
         with patch('sys.argv', argv), \
              patch('extract.extract_pdf') as mock_extract_pdf, \
-             patch('extract.pymupdf.open') as mock_pymupdf_open:
+             patch('extract.fitz.open') as mock_fitz_open:
             mock_extract_pdf.return_value = "Sample markdown"
-            mock_pymupdf_open.return_value = mock_doc
+            mock_fitz_open.return_value = mock_doc
             main()
-            # Verify extract_pdf was called
             assert mock_extract_pdf.called
 
     def test_with_no_ocr(self, tmp_path):
@@ -85,29 +83,23 @@ class TestArgumentParsing:
 
         with patch('sys.argv', argv), \
              patch('extract.extract_pdf') as mock_extract_pdf, \
-             patch('extract.pymupdf.open') as mock_pymupdf_open:
+             patch('extract.fitz.open') as mock_fitz_open:
             mock_extract_pdf.return_value = "Sample markdown"
-            mock_pymupdf_open.return_value = mock_doc
+            mock_fitz_open.return_value = mock_doc
             main()
-            # Verify extract_pdf was called with use_ocr=False
             call_kwargs = mock_extract_pdf.call_args
-            # Check that use_ocr is False (keyword argument)
             assert call_kwargs[1].get('use_ocr') is False
 
     def test_missing_pdf(self):
-        """Test that missing --pdf raises error"""
         with patch('sys.argv', ['extract.py']):
             with pytest.raises(SystemExit) as exc_info:
                 main()
-            # argparse raises SystemExit with code 2 for errors
             assert exc_info.value.code == 2
 
 
 class TestMainFunction:
-    """Tests for main() function behavior"""
 
     def test_file_not_found(self):
-        """Test handling of non-existent PDF file"""
         argv = ['extract.py', '--pdf', 'nonexistent.pdf', '--no-ocr']
         with patch('sys.argv', argv):
             with pytest.raises(SystemExit) as exc_info:
@@ -115,7 +107,6 @@ class TestMainFunction:
             assert exc_info.value.code == 1
 
     def test_output_dir_creation(self, tmp_path):
-        """Test that output directory is created"""
         output_dir = tmp_path / "new_output"
         pdf_path = tmp_path / "test.pdf"
         pdf_path.touch()
@@ -130,9 +121,8 @@ class TestMainFunction:
 
         with patch('sys.argv', argv), \
              patch('extract.extract_pdf') as mock_extract_pdf, \
-             patch('extract.pymupdf.open') as mock_pymupdf_open:
+             patch('extract.fitz.open') as mock_fitz_open:
             mock_extract_pdf.return_value = "Sample markdown"
-            mock_pymupdf_open.return_value = mock_doc
+            mock_fitz_open.return_value = mock_doc
             main()
-            # Verify output_dir was created
             assert output_dir.exists()
