@@ -80,7 +80,7 @@ def main():
     parser.add_argument("--pdf", required=True,
                         help="Input PDF file path")
     parser.add_argument("--output-dir", required=False,
-                        help="Output directory (default: <pdf_filename>)")
+                        help="Parent directory for output (default: current dir; creates <pdf_stem> subfolder)")
     parser.add_argument("--no-ocr", action="store_true",
                        help="Disable OCR (for AI with image input capability)")
     args = parser.parse_args()
@@ -92,7 +92,8 @@ def main():
     if not input_path.exists():
         sys.exit(1)
 
-    output_dir = Path(args.output_dir) if args.output_dir else Path.cwd() / input_path.stem
+    base_dir = Path(args.output_dir) if args.output_dir else Path.cwd()
+    output_dir = base_dir / input_path.stem
     output_dir.mkdir(exist_ok=True, parents=True)
 
     output = extract_pdf(str(input_path), output_dir, use_ocr=use_ocr)

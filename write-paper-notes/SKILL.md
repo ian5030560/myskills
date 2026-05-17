@@ -243,7 +243,7 @@ Required parameters:
 - `--pdf`: PDF file path
 
 Optional parameters:
-- `--output-dir`: Output directory (default: uses PDF filename)
+- `--output-dir`: Parent directory for output (default: current dir; creates `<pdf_stem>` subfolder)
 - `--no-ocr`: **ONLY use when your AI supports image input** (AI can view images directly)
 
 Outputs:

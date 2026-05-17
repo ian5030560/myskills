@@ -49,7 +49,7 @@ python write-paper-notes/scripts/extract.py --pdf <path> [--no-ocr] [--output-di
 ## Quirks
 
 - **Windows UTF-8**: Set `PYTHONIOENCODING=utf-8` before running `extract.py` (Windows console uses cp950)
-- **Output dir default**: uses `<pdf_stem>` in cwd when `--output-dir` omitted
+- **Output dir**: parent directory for `<pdf_stem>` subfolder; defaults to cwd when `--output-dir` omitted
 - **Images**: extracted to `<output_dir>/images/` automatically via `write_images=True`
 - **Dependency**: formerly used `pypdf`, migrated to `pymupdf4llm` (see git `9cb6a1a`)
 
