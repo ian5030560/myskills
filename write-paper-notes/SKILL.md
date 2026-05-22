@@ -1,233 +1,37 @@
 ---
 name: write-paper-notes
-version: 1.1.0
-description: "Extract content from PDF papers and generate structured Markdown notes. Default: OCR enabled for text-only AIs. Use --no-ocr for image-input AIs."
+version: 2.2.0
+description: "Analyze PDF academic papers and generate structured Markdown notes. Requires a PDF extraction capability (e.g., @pdf skill)."
 
 metadata:
+  pattern: pipeline
+  steps: "7"
   starchild:
     emoji: "📄"
     skillKey: write-paper-notes
     requires:
       env: []
       bins: [python]
-    install:
-      - kind: system
-        package: tesseract-ocr
+    install: []
 
 user-invocable: true
 ---
 
-Extract text, images, and tables from PDF academic papers and generate structured Markdown notes using pymupdf4llm with built-in Tesseract OCR.
+Analyze PDF academic papers and generate structured Markdown notes using a PDF extraction skill for content extraction and AI for content organization.
 
-**OCR Default**: Enabled (for text-only AIs that cannot view images)
-**When to use `--no-ocr`**: ONLY when your AI supports image input (e.g., GPT-4V, Claude 3.5 Sonnet)
+This skill does **not** bundle its own extraction logic. Instead, it requires a **PDF extraction capability** — any skill or tool that can fulfill the following roles:
+- **Text Extraction Role**: Convert PDF to text (Markdown preferred; plain text fallback)
+- **Image Extraction Role**: Extract embedded images. Built-in OCR is a bonus; if absent, the pipeline handles it via fallback logic.
 
-## Processing Flow
+## Prerequisites
 
-| Step | Action |
-|------|--------|
-| 0 | Install dependencies: `pip install pymupdf4llm` |
-| 0.1 | Install Tesseract system-wide (see OS-specific commands below) |
-| 1 | **Extraction**: Run the extraction script.<br>- **Image-input AI**: Use `--no-ocr` → `python scripts/extract.py --pdf <pdf> --no-ocr --output-dir <dir>`<br>- **Text-only AI**: Use default (requires Tesseract) → `python scripts/extract.py --pdf <pdf> [--output-dir <dir>]` |
-| 2 | **Content Analysis**:<br>- **Image-input AI**: Examine and describe each extracted image in `images/` folder<br>- **Text-only AI**: Use provided OCR text to understand image content |
-| 3 | **Organization**: **REQUIRED**: AI MUST reorganize content into `notes.md` (see **Organized Notes Example** below) |
-| 4 | AI saves organized notes to `notes.md` in the output directory |
+Ensure at least one PDF extraction skill is installed (e.g., the **@pdf** skill). The AI will automatically discover and map available tools during the workflow.
 
-## OCR Configuration
+OCR may require Tesseract system-wide installation depending on the chosen tool (see the respective skill's documentation).
 
-**Default behavior**: OCR enabled via pymupdf4llm's built-in Tesseract plugin (for text-only AIs)
+### Windows UTF-8 Encoding
 
-**Smart OCR**: pymupdf4llm automatically detects pages needing OCR and only processes those regions (Hybrid OCR strategy)
-
-### When to use `--no-ocr`
-
-**ONLY use `--no-ocr` when your AI supports image input** (e.g., GPT-4V, Claude 3.5 Sonnet):
-- These AIs can view images directly, so OCR text is unnecessary
-- Example: `python extract.py --pdf paper.pdf --no-ocr`
-
-**Do NOT use `--no-ocr` when your AI is text-only** (e.g., GPT-3.5, Claude 3 Opus):
-- These AIs need OCR text to understand image content
-- Tesseract must be installed system-wide
-
-### Dependencies
-
-**System Tesseract installation (required):**
-
-| OS | Install Command |
-|----|----------------|
-| **Windows** | `winget install -e --id UB-Mannheim.TesseractOCR` |
-| **macOS** | `brew install tesseract` |
-| **Ubuntu/Debian** | `sudo apt-get install tesseract-ocr` |
-| **Fedora** | `sudo dnf install tesseract` |
-| **Arch Linux** | `sudo pacman -S tesseract` |
-
-Verify installation: `tesseract --version`
-
-### Behavior Table
-
-| --no-ocr | Tesseract Installed | AI Type | Result |
-|----------|---------------------|---------|--------|
-| ❌ No | ✅ Yes | Text-only AI | OCR runs via pymupdf4llm Tesseract plugin |
-| ❌ No | ❌ No | Text-only AI | **Error: Tesseract not installed** |
-| ✅ Yes | Any | Image-input AI | OCR disabled, no error |
-
-## Heading Detection
-
-Headings are automatically detected by pymupdf4llm based on font size hierarchy:
-- Larger fonts → Higher heading levels (##, ###, ####)
-- No manual pattern matching required
-
-## AI Organization Guidelines
-
-When AI processes the extracted Markdown output, it must:
-
-1. **Group content by heading levels**: Combine all paragraphs under the same heading (##, ###, ####)
-2. **Preserve hierarchy**: Keep the original heading structure intact
-3. **Insert images into appropriate sections**: Move `![Image](images/...)` references from page-end grouping into the subsection they belong to, based on OCR context and paper content
-4. **Improve image alt text**: Use the image analysis from Step 2 to replace generic `Image` alt text with a precise descriptive phrase (e.g., `![Transformer architecture]`)
-5. **OCR text is for AI reference only**: Read OCR text after each image to understand its content, but do NOT copy raw OCR output into notes.md
-6. **Restructure content, don't just copy**: Transform original content into structured notes:
-   - Extract key points → present as bullet/numbered lists
-   - Organize comparative data → use tables (only when referencing Table X)
-   - **Flexible element ordering**: Rearrange text, lists, tables, and images based on content logic
-7. **Add summaries**: Add concise summaries for each section (##) and subsection (###, ####) ABOVE the content
-8. **Remove redundancy**: Merge related text only, never remove images
-9. **Math formulas**: Use LaTeX syntax for all mathematical expressions (e.g., `$a^2 + b^2 = c^2$` for inline, `$$\dots$$` for display equations)
-10. **Code formatting**: Use Markdown code blocks for multi-line code and inline code (`` ` ``) for variables, function names, or short commands
-
-## Organized Notes Example
-
-After processing the extracted Markdown, `notes.md` should look like this:
-
-```markdown
-# Paper Title: Attention Is All You Need
-
-## Summary
-This paper introduces the Transformer architecture, replacing recurrent layers with attention mechanisms. Achieves parallelization and superior translation performance.
-
-## 1. Introduction
-
-### Summary
-Recurrent models are sequential and hard to parallelize. Transformers solve this with attention-only architecture.
-
-**Limitations of RNNs/LSTMs:**
-- Sequential computation prevents parallelization
-- Long-range dependencies are hard to learn
-- Hidden state becomes information bottleneck
-
-**Transformer advantages:**
-- No recurrence → fully parallelizable
-- Attention mechanism captures global dependencies directly
-- Superior performance on WMT 2014 translation task
-
-![Transformer vs RNN architecture comparison](images/paper_0001_01.png)
-
-## 2. Related Work
-
-### Summary
-Previous approaches: CNNs (limited receptive field), RNNs (sequential), attention-based (still use RNN).
-
-**Model comparison:**
-| Approach | Parallelization | Long-range Dependencies | Limitations |
-|----------|----------------|------------------------|-------------|
-| RNN/LSTM | Low | Hard | Sequential, bottleneck |
-| CNN | Medium | Limited | Receptive field size |
-| Transformer | High | Direct | New architecture |
-
-## 3. Model Architecture
-
-### Summary
-Encoder-decoder with multi-head self-attention, position-wise FFN, and residual connections.
-
-**Encoder (6 layers):**
-- Multi-head self-attention (h=8 heads, d_k=64)
-- Position-wise feed-forward (d_ff=2048)
-- Residual connection + layer normalization
-
-![Transformer architecture with encoder-decoder stacks](images/paper_0003_01.png)
-
-**Decoder (6 layers):**
-- Masked multi-head self-attention (prevents future attending)
-- Encoder-decoder attention
-- Position-wise feed-forward network
-
-**Key hyperparameters:**
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| N (layers) | 6 | Encoder/decoder depth |
-| d_model | 512 | Model dimension |
-| d_ff | 2048 | Feed-forward inner dimension |
-| h (heads) | 8 | Attention heads |
-| d_k, d_v | 64 | Key/value dimensions |
-
-**Scaled Dot-Product Attention:**
-$$ \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right) V $$
-
-**Multi-Head Attention pseudocode:**
-```python
-def multi_head_attention(Q, K, V, h=8):
-    d_k = Q.shape[-1] // h
-    heads = [self_attention(Q_i, K_i, V_i) for i in range(h)]
-    return concat(heads)
-```
-```
-
-**Key principles:**
-- Summaries are added ABOVE each section/subsection
-- **OCR text is for AI reference only** — read it to understand images, do NOT include in output
-- Images are placed **within the relevant subsection**, not page-bottom grouping
-- Alt text is improved from generic `Image` to descriptive text
-- Content is **restructured, not copied**: use bullet points, lists, tables
-- **Flexible ordering**: rearrange text, lists, tables, and images based on content logic
-- Group content by headings, not page numbers
-- Tables included only when referenced (not all tables preserved)
-- **Math formulas** use LaTeX syntax (e.g., `$$...$$`)
-- **Code** uses Markdown code blocks / inline code
-
-## Output Format (stdout)
-
-### Raw extraction output
-Images appear grouped at the end of each page's text, followed by OCR text (when enabled):
-
-```markdown
-## 1. Introduction
-
-### 1.1 Background
-Text from pymupdf4llm...
-
-| Method | Accuracy |
-|--------|----------|
-| A      | 95%      |
-
-![Image](images/paper_0001_01.png)
-OCR reference text for AI only — not included in notes.md
-
-![Image](images/paper_0001_02.png)
-More OCR context for understanding image placement
-```
-
-## How It Works
-
-pymupdf4llm handles text, heading, and table extraction.
-Images are extracted directly via PyMuPDF (`fitz.Page.get_images`) for original-quality embedded images.
-
-- **Text & Headings**: Font-size based detection
-- **Images**: Extracted via `fitz.Page.get_images()` — original embedded format (JPEG/PNG), no re-encoding
-- **Tables**: Automatic detection with GitHub-Flavored Markdown output
-- **OCR**: Built-in Tesseract plugin for page text
-- **Image OCR**: Each extracted image is OCR'd (when enabled); the OCR text is for AI reference only — AI reads it to understand image content and place it in the right section, but does NOT copy it into notes.md
-
-## Script Usage
-
-### Install Dependencies
-
-```bash
-pip install pymupdf4llm
-```
-
-### Windows UTF-8 Encoding (Required)
-
-Windows console default encoding (cp950/Big5) cannot handle UTF-8 characters in PDFs. Set this before running:
+Windows console default encoding (cp950/Big5) cannot handle UTF-8 characters in PDFs. Set the following environment variable before running Python-based PDF tools:
 
 **PowerShell:**
 ```powershell
@@ -239,30 +43,114 @@ $env:PYTHONIOENCODING="utf-8"
 set PYTHONIOENCODING=utf-8
 ```
 
-### Run Extraction
+## Pipeline
 
-**For image-input AIs (e.g., GPT-4V, Claude 3.5 Sonnet) - Use `--no-ocr`:**
-```bash
-python scripts/extract.py --pdf <pdf_path> --no-ocr --output-dir <output_dir>
-```
+You are running a document analysis pipeline. Execute each step in order. Do NOT skip steps or proceed if a step fails.
 
-**For text-only AIs (e.g., GPT-3.5, Claude 3 Opus) - OCR enabled by default:**
-```bash
-# System: Install Tesseract from https://github.com/UB-Mannheim/tesseract/wiki
-python scripts/extract.py --pdf <pdf_path> [--output-dir <output_dir>]
-```
+### Step 1 — Capability Discovery
 
-Required parameters:
-- `--pdf`: PDF file path
+Locate an installed PDF skill, read its `SKILL.md`, and identify the specific commands for:
+- **Image Extraction**: Command + flags for extracting images, and identify if built-in OCR is supported
+- **Text Extraction**: Command + flags for extracting text (Markdown support optional)
 
-Optional parameters:
-- `--output-dir`: Parent directory for output (default: current dir; creates `<pdf_stem>` subfolder)
-- `--no-ocr`: **ONLY use when your AI supports image input** (AI can view images directly)
+If a role cannot be mapped to any available tool, mark it as **"Not Available"** in the report instead of searching further.
 
-Outputs:
-- Markdown content to stdout (redirect to file)
-- `images/` - Image folder with extracted figures
+Present the discovered capabilities to the user. Example:
+- ✅ Text Extraction: `python pdf_text_extractor.py ...` (supports Markdown)
+- ❌ Image Extraction: **Not Available** (no image-extraction tool found)
 
-### Save AI-Organized Notes
+Ask: "Is this the correct tool mapping?" Do NOT proceed to Step 2 until the user confirms.
 
-After organizing the content per **AI Organization Guidelines**, save the notes to `notes.md` in the output directory.
+### Step 2 — Content Extraction
+
+Run extraction commands based on Step 1's mapping:
+- **Image Extraction**: If mapped to a valid command, run it to extract all embedded images. If marked as **"Not Available"**, skip this step.
+- **Text Extraction**: If mapped to a valid command, run it. Determine the output format by applying the logic defined in the [Text Extraction Logic](#text-extraction-logic) section below.
+
+### Step 3 — Extraction Gate
+
+Present the extraction results to the user:
+- Location of extracted images
+- Location of extracted text
+- Any errors or warnings
+
+Confirm with the user that the extracted content looks correct before proceeding. If extraction failed, ask for guidance and potentially return to Step 1.
+
+Do NOT skip this gate. Do NOT proceed to Step 4 until the user confirms.
+
+### Step 4 — Content Analysis
+
+First, determine the available data:
+- **No images extracted** (Image Extraction marked as "Not Available" in Step 1) → Skip all image-related analysis. Proceed with text-only analysis.
+- **Images extracted** → Check the discovery results from Step 1 to determine if the image extraction tool has built-in OCR:
+
+  - **Built-in OCR available** → Use its integrated OCR output
+  - **No built-in OCR** → Apply the [OCR Fallback Strategy](#ocr-fallback-strategy) (Tier 2: external OCR skill, or Tier 3: skip)
+
+Then process the extracted content:
+- **Image-input AI** (and images available): Examine each extracted image in the `images/` folder directly
+- **Text-only AI** (and images available): Use the resolved OCR text to understand image content
+- **No OCR available** (and images available): Show image file paths as visual reference
+- **No images available**: Analyze the extracted text alone
+
+Analyze the extracted text alongside any available image content to build a comprehensive understanding of the paper.
+
+### Step 5 — Structural Organization
+
+1. **Load the Style Guide**: Read `references/style-guide.md` for all formatting rules (headings, images, math, code, summaries, restructuring).
+2. **Load the Template**: Read `assets/notes-template.md` for the required output skeleton.
+3. **Fill the Template**: Every section in the template must be present in the output. Do not add or omit sections unless user preferences dictate.
+
+Reorganize extracted content into `notes.md` following the style guide rules and template structure.
+
+### Step 6 — Quality Review
+
+Load `references/quality-checklist.md`. Verify every item on the checklist. Fix any violations before proceeding.
+
+Report results to the user. Do NOT proceed to Step 7 until all checklist items pass.
+
+### Step 7 — Final Delivery
+
+Save the organized notes to `notes.md` in the output directory.
+
+The final output must pass every item in `references/quality-checklist.md` before it is presented to the user.
+
+## Logic Specifications
+
+### Text Extraction Logic
+
+The format of extracted text depends on the discovered tool's capabilities:
+
+| Tool Capability | Action |
+|---|---|
+| ✅ Supports Markdown (via parameter, default output, or library behavior) | Use Markdown output |
+| ❌ No Markdown support | Fall back to Plain Text |
+
+The AI must verify Markdown support by examining the tool's documentation, help output, or source code — do not assume Markdown is available without confirmation.
+
+### OCR Fallback Strategy
+
+OCR resolution follows a three-tier fallback:
+
+| Tier | Check | Action |
+|------|-------|--------|
+| 1 | Does the chosen PDF skill have built-in OCR? | Use its integrated OCR |
+| 2 | Is an external OCR skill or system tool available? (e.g., `@ocr-document-processor`, `tesseract` CLI) | Pipe extracted images through the external OCR tool |
+| 3 | No OCR capability found anywhere | **Skip OCR**. Show image file paths to AI as visual reference |
+
+#### OCR Behavior Summary
+
+| OCR Available | AI Type | Result |
+|---|---|---|
+| ✅ Yes | Text-only AI | OCR text available for understanding image content |
+| ✅ Yes | Image-input AI | OCR optional; AI can read images directly |
+| ❌ No | Text-only AI | Images noted as "available at path" — AI cannot inspect them |
+| ❌ No | Image-input AI | AI reads images directly from file paths |
+
+### Heading Detection
+
+When Markdown mode is available, headings are automatically detected by the Markdown converter based on font size hierarchy:
+- Larger fonts → Higher heading levels (##, ###, ####)
+- No manual pattern matching required
+
+When only plain text is available, the AI must infer heading structure from content cues (e.g., numbering, line gaps, font size indicators if present).
