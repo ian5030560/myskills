@@ -41,3 +41,12 @@ This guide defines how the AI must transform extracted PDF content into structur
     - Do NOT infer connections or modules that are not explicitly stated
     - Keep each diagram focused on a single concept (max 10-12 nodes)
     - Wrap diagrams in ```` ```mermaid ```` blocks
+
+## Diagram vs. Image Redundancy
+
+14. **Prefer original images over synthetic diagrams**: The extracted image is the definitive source. Only generate a Mermaid diagram if:
+    - No clear image exists for the described concept (text-only description in the paper)
+    - Multiple fragmented images need to be synthesized into a single cohesive view
+    - The original image is too complex and a simplified abstraction adds clarity
+15. **Mutual exclusion for identical content**: If a Mermaid diagram would simply replicate the information already conveyed by an extracted image (same architecture, same flow, same structure), omit the diagram entirely.
+16. **Complementary use is allowed**: If the Mermaid diagram provides a *different* perspective (e.g., simplified overview vs. detailed schematic, or a sequence timeline vs. a static architecture), both may coexist.

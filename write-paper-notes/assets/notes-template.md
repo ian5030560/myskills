@@ -3,7 +3,7 @@
 ## Summary
 {{one-paragraph summary of the paper}}
 
-{{Optional: Insert a Mermaid diagram summarizing the core architecture or workflow here}}
+{{Optional: Insert a Mermaid diagram to summarize the core architecture or workflow here. Skip if an extracted image already conveys this information clearly.}}
 
 ## {{section_number}}. {{section_title}}
 
@@ -14,6 +14,6 @@
 
 ![{{descriptive alt text}}](images/{{image_filename}})
 
-{{Optional: Insert a Mermaid diagram for complex flows or interactions within this section}}
+{{Optional: Insert a Mermaid diagram for complex flows or interactions within this section. Skip if an extracted image already covers the same concept.}}
 
 {{Additional sections as needed, following the same pattern}}

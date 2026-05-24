@@ -49,17 +49,21 @@ You are running a document analysis pipeline. Execute each step in order. Do NOT
 
 ### Step 1 — Capability Discovery
 
-Locate an installed PDF skill, read its `SKILL.md`, and identify the specific commands for:
-- **Image Extraction**: Command + flags for extracting images, and identify if built-in OCR is supported
+First, determine your own AI type: are you an **Image-input AI** (can directly see images) or a **Text-only AI** (cannot see images)?
+
+Then, locate an installed PDF skill, read its `SKILL.md`, and identify the specific commands for:
+- **Image Extraction**: Command + flags for extracting images.
+  - If you are a **Text-only AI**, also identify if built-in OCR is supported.
+  - If you are an **Image-input AI**, ignore OCR capabilities entirely — they are not needed.
 - **Text Extraction**: Command + flags for extracting text (Markdown support optional)
 
-If a role cannot be mapped to any available tool, mark it as **"Not Available"** in the report instead of searching further.
+If a role cannot be mapped to any available tool, mark it as **"Not Available"**.
 
-Present the discovered capabilities to the user. Example:
-- ✅ Text Extraction: `python pdf_text_extractor.py ...` (supports Markdown)
-- ❌ Image Extraction: **Not Available** (no image-extraction tool found)
+Perform a self-check on the mapping: are the discovered commands reasonable for the identified tool? If yes, proceed to Step 2 automatically.
 
-Ask: "Is this the correct tool mapping?" Do NOT proceed to Step 2 until the user confirms.
+**Intervention trigger**: Only ask the user for guidance if:
+- No tool can be found for the **Text Extraction** role (critical failure)
+- The mapping is ambiguous (e.g., multiple tools with conflicting capabilities)
 
 ### Step 2 — Content Extraction
 
@@ -67,33 +71,40 @@ Run extraction commands based on Step 1's mapping:
 - **Image Extraction**: If mapped to a valid command, run it to extract all embedded images. If marked as **"Not Available"**, skip this step.
 - **Text Extraction**: If mapped to a valid command, run it. Determine the output format by applying the logic defined in the [Text Extraction Logic](#text-extraction-logic) section below.
 
+**After extraction, reorganize the images**: The Image Extraction tool may output images in a `<pdf_stem>/` subfolder. Move all extracted image files into a dedicated `images/` directory at the root of the notes output folder. This ensures the final path is `images/<filename>`, matching the notes template.
+
 ### Step 3 — Extraction Gate
 
-Present the extraction results to the user:
-- Location of extracted images
-- Location of extracted text
-- Any errors or warnings
+Perform an automated quality check on the extraction results:
+- **Text**: Verify output is non-empty, has no obvious encoding corruption, and matches expected format
+- **Images**: Confirm the `images/` directory exists and contains the expected files
 
-Confirm with the user that the extracted content looks correct before proceeding. If extraction failed, ask for guidance and potentially return to Step 1.
+If the results pass all checks, proceed to Step 4 automatically.
 
-Do NOT skip this gate. Do NOT proceed to Step 4 until the user confirms.
+**Intervention trigger**: Only ask the user for guidance if:
+- Text output is empty, corrupted, or far shorter than expected
+- No images were found but Step 1 confirmed the tool supports extraction
+- The extraction tool reported errors or warnings
 
 ### Step 4 — Content Analysis
 
-First, determine the available data:
-- **No images extracted** (Image Extraction marked as "Not Available" in Step 1) → Skip all image-related analysis. Proceed with text-only analysis.
-- **Images extracted** → Check the discovery results from Step 1 to determine if the image extraction tool has built-in OCR:
+First, determine what data is available:
+- **No images extracted** (Image Extraction marked as "Not Available" in Step 1) → Proceed with text-only analysis.
+- **Images extracted** → Use the AI type you already determined in Step 1 to decide whether OCR is needed:
 
-  - **Built-in OCR available** → Use its integrated OCR output
-  - **No built-in OCR** → Apply the [OCR Fallback Strategy](#ocr-fallback-strategy) (Tier 2: external OCR skill, or Tier 3: skip)
+#### If you are an Image-input AI (can directly see images):
 
-Then process the extracted content:
-- **Image-input AI** (and images available): Examine each extracted image in the `images/` folder directly
-- **Text-only AI** (and images available): Use the resolved OCR text to understand image content
-- **No OCR available** (and images available): Show image file paths as visual reference
-- **No images available**: Analyze the extracted text alone
+Skip OCR entirely. Examine each extracted image in the `images/` folder directly. OCR is redundant and should not be triggered.
 
-Analyze the extracted text alongside any available image content to build a comprehensive understanding of the paper.
+#### If you are a Text-only AI (cannot see images):
+
+Trigger the [OCR Fallback Strategy](#ocr-fallback-strategy) to obtain text descriptions of the images. Use the resolved OCR text to understand image content.
+
+If OCR fails (no OCR capability available), show image file paths as visual reference.
+
+---
+
+Analyze the extracted text alongside any available image content (directly or via OCR) to build a comprehensive understanding of the paper.
 
 ### Step 5 — Structural Organization
 
@@ -105,9 +116,13 @@ Reorganize extracted content into `notes.md` following the style guide rules and
 
 ### Step 6 — Quality Review
 
-Load `references/quality-checklist.md`. Verify every item on the checklist. Fix any violations before proceeding.
+Load `references/quality-checklist.md`. Verify every item on the checklist. Auto-fix any violations found.
 
-Report results to the user. Do NOT proceed to Step 7 until all checklist items pass.
+After fixing, re-check until all items pass. If a violation cannot be auto-fixed (e.g., ambiguous image placement), note it and continue.
+
+Proceed to Step 7 automatically once the checklist passes.
+
+**Intervention trigger**: Only report to the user if a critical violation (e.g., missing LaTeX formatting, broken image paths) cannot be resolved after multiple attempts.
 
 ### Step 7 — Final Delivery
 
@@ -130,22 +145,22 @@ The AI must verify Markdown support by examining the tool's documentation, help 
 
 ### OCR Fallback Strategy
 
-OCR resolution follows a three-tier fallback:
+This strategy is only invoked when the AI is **Text-only** (cannot directly analyze images). Image-input AIs skip OCR entirely.
+
+When triggered, OCR resolution follows a three-tier fallback:
 
 | Tier | Check | Action |
 |------|-------|--------|
 | 1 | Does the chosen PDF skill have built-in OCR? | Use its integrated OCR |
 | 2 | Is an external OCR skill or system tool available? (e.g., `@ocr-document-processor`, `tesseract` CLI) | Pipe extracted images through the external OCR tool |
-| 3 | No OCR capability found anywhere | **Skip OCR**. Show image file paths to AI as visual reference |
+| 3 | No OCR capability found anywhere | **Skip OCR**. Show image file paths as visual reference |
 
 #### OCR Behavior Summary
 
 | OCR Available | AI Type | Result |
 |---|---|---|
-| ✅ Yes | Text-only AI | OCR text available for understanding image content |
-| ✅ Yes | Image-input AI | OCR optional; AI can read images directly |
-| ❌ No | Text-only AI | Images noted as "available at path" — AI cannot inspect them |
-| ❌ No | Image-input AI | AI reads images directly from file paths |
+| ✅ Yes | Text-only | OCR text available for understanding image content |
+| ❌ No | Text-only | Images noted as "available at path" — AI cannot inspect them |
 
 ### Heading Detection
 

@@ -25,6 +25,8 @@ Before saving the final `notes.md`, verify every item below. Fix any violations 
 - [ ] Diagrams use terminology directly from the paper (no invented concepts)
 - [ ] Each diagram is focused on a single concept (≤ 12 nodes)
 - [ ] Diagrams are only present where they add clarity (no overuse)
+- [ ] No Mermaid diagram duplicates the information of an extracted image (redundant diagrams are removed)
+- [ ] When both a diagram and an image exist for the same concept, each provides a distinct perspective (complementary, not identical)
 
 ## Final
 - [ ] File is named `notes.md`
