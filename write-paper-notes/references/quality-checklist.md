@@ -15,7 +15,10 @@ Before saving the final `notes.md`, verify every item below. Fix any violations 
 ## Content
 - [ ] LaTeX is used for all math formulas (inline `$...$` and display `$$...$$`)
 - [ ] Code blocks are properly formatted (``` for multi-line, `` ` `` for inline)
+- [ ] All extracted tables are referenced or integrated into the notes
 - [ ] Tables are used for comparative/reference data only
+- [ ] Tables are positioned within the relevant subsection (not grouped at end)
+- [ ] Extracted tables take precedence over text-inferred table structures
 - [ ] OCR text is NOT copied verbatim into the output
 - [ ] Redundant/merged text does not repeat information
 - [ ] Content is restructured (bullet points, lists), not copied verbatim

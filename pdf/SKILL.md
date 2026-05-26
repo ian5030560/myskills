@@ -19,12 +19,13 @@ user-invocable: true
 
 Extract, manipulate, and secure PDFs using PyMuPDF (fitz) and pymupdf4llm with built-in Tesseract OCR.
 
-**Four tools** cover the full PDF lifecycle:
+**Five tools** cover the full PDF lifecycle:
 
 | Tool | Category | Description |
 |------|----------|-------------|
 | `pdf_text_extractor.py` | **Extraction** | Text only (plain text or Markdown). No images, no OCR. |
 | `pdf_images_extractor.py` | **Extraction** | Images with optional OCR. No text formatting. |
+| `pdf_table_extractor.py` | **Extraction** | Table detection and Markdown conversion. |
 | `pdf_manager.py` | **Manipulation** | Merge, split, rotate pages, and manage metadata. |
 | `pdf_security.py` | **Security** | Encrypt with AES-256 or decrypt PDFs. |
 
@@ -209,12 +210,35 @@ python pdf/scripts/pdf_security.py decrypt --pdf encrypted.pdf --password admin4
 | `--password` | No | — | Owner password to unlock |
 | `--output` / `-o` | No | Overwrite input | Output file path |
 
+## Tool 5: pdf_table_extractor.py
+
+Detect and extract tables from PDF pages as structured Markdown tables using PyMuPDF's built-in `find_tables()` engine.
+
+### Usage
+
+```bash
+python pdf/scripts/pdf_table_extractor.py --pdf <path> [--output-dir <dir>]
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `--pdf` | Yes | — | Input PDF file path |
+| `--output-dir` | No | Current dir | Parent directory for output; creates `<pdf_stem>/` subfolder |
+
+### Output
+
+- **File**: `<output-dir>/<pdf_stem>/tables.md`
+- **Structure**: Each detected table is prefixed with `## Page X — Table Y`, followed by a GFM-formatted Markdown table
+- **Empty PDF**: Produces a file containing only the `# Extracted Tables` header
+
 ## How It Works
 
 - **Text**: `pdf_text_extractor.py` uses `fitz.Page.get_text()` for plain text or `pymupdf4llm.to_markdown(write_images=False)` for Markdown
 - **Images**: Via `fitz.Page.get_images()` — original embedded format (JPEG/PNG), no re-encoding
 - **OCR**: `fitz.Pixmap.pdfocr_tobytes()` — native PyMuPDF Tesseract integration
-- **Tables**: Automatically included when using `--format markdown` via `pymupdf4llm`
+- **Tables**: `pdf_table_extractor.py` uses `page.find_tables().extract()` — native PyMuPDF table detection with automated Markdown formatting. (Legacy: `pymupdf4llm` markdown mode may also include basic tables.)
 - **Merge**: `fitz.open().insert_pdf()` — zero-copy page insertion for high-speed merging
 - **Split**: `fitz.open().insert_pdf(src, from_page=..., to_page=...)` — exact page-range extraction
 - **Rotate**: `page.set_rotation()` — native page-level rotation without re-encoding

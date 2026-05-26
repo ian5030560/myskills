@@ -1,60 +1,33 @@
 # AGENTS.md
 
 ## Project
-
-OpenCode skill: extracts PDF academic papers to Markdown via `write-paper-notes/scripts/extract.py`.
+Collection of skills:
+- `pdf`: Core PDF extraction tools in `pdf/scripts/`.
+- `write-paper-notes`: Orchestration pipeline for academic paper notes (`write-paper-notes/SKILL.md`).
 
 ## Python Import Path
-
-Tests and pylint require `write-paper-notes/scripts` in `sys.path`. This is configured in:
-- `tests/conftest.py` (sets path for pytest)
-- `.pylintrc` (init-hook)
+Tests and linting require `pdf/scripts` in `sys.path` (configured in `tests/pdf/conftest.py`).
 
 ## Commands
-
 ```bash
-# Run all tests
-pytest tests/
-
-# Run single test file
-pytest tests/test_extract.py
-
-# Run single test class or method
-pytest tests/test_extract.py::TestExtractPdf
-pytest tests/test_extract.py::TestExtractPdf::test_returns_string
+# Run PDF tests
+pytest tests/pdf/
 
 # Install dependencies
 pip install pymupdf4llm
 
-# Install Tesseract system-wide (required for OCR):
+# Install Tesseract (OCR):
 #   Windows: winget install -e --id UB-Mannheim.TesseractOCR
 #   macOS: brew install tesseract
 #   Ubuntu/Debian: sudo apt-get install tesseract-ocr
 
-# Run extraction
-python write-paper-notes/scripts/extract.py --pdf <path> [--no-ocr] [--output-dir <dir>]
+# Lint PDF scripts
+pylint pdf/scripts/*.py --rcfile=.pylintrc
 ```
 
-## OCR Behavior
+## OCR & Environment
+- **OCR**: Requires Tesseract. If not installed, `pymupdf4llm` will raise an error.
+- **Windows UTF-8**: Set `PYTHONIOENCODING=utf-8` before running Python PDF tools to avoid encoding errors.
 
-- **Default**: OCR enabled via pymupdf4llm's built-in Tesseract plugin
-- **`--no-ocr`**: disables OCR; use when AI supports image input (GPT-4V, Claude 3.5)
-- **Tesseract not installed + no `--no-ocr`**: pymupdf4llm raises error
-- **Dependencies**: 
-  - System: Install Tesseract:
-    - **Windows**: `winget install -e --id UB-Mannheim.TesseractOCR`
-    - **macOS**: `brew install tesseract`
-    - **Ubuntu/Debian**: `sudo apt-get install tesseract-ocr`
-
-## Quirks
-
-- **Windows UTF-8**: Set `PYTHONIOENCODING=utf-8` before running `extract.py` (Windows console uses cp950)
-- **Output dir**: parent directory for `<pdf_stem>` subfolder; defaults to cwd when `--output-dir` omitted
-- **Images**: extracted to `<output_dir>/images/` automatically via `write_images=True`
-- **Dependency**: formerly used `pypdf`, migrated to `pymupdf4llm` (see git `9cb6a1a`)
-
-## Lint
-
-```bash
-pylint write-paper-notes/scripts/extract.py --rcfile=.pylintrc
-```
+## Workflow: write-paper-notes
+This skill is a pipeline. Follow the 7-step process defined in `write-paper-notes/SKILL.md` strictly.
