@@ -2,6 +2,24 @@
 
 Personal Agent Skills collection.
 
+## pdf
+
+Complete PDF toolkit with 5 Python scripts powered by PyMuPDF:
+
+| Tool | Purpose |
+|------|---------|
+| `pdf_text_extractor.py` | Text extraction (plain text or Markdown) |
+| `pdf_images_extractor.py` | Image extraction with optional Tesseract OCR |
+| `pdf_table_extractor.py` | Table detection and Markdown conversion |
+| `pdf_manager.py` | Merge, split, rotate pages, manage metadata |
+| `pdf_security.py` | AES-256 encrypt/decrypt PDFs |
+
+### Installation
+
+```bash
+npx skills add ian5030560/myskills --skill pdf
+```
+
 ## write-paper-notes
 
 7-step pipeline that analyzes PDF academic papers and generates structured Markdown notes. Requires an installed PDF extraction skill (any skill capable of text, image, and table extraction).
