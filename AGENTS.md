@@ -14,7 +14,7 @@ Tests and linting require `pdf/scripts` in `sys.path` (configured in `tests/pdf/
 pytest tests/pdf/
 
 # Install dependencies
-pip install pymupdf4llm
+pip install PyMuPDF
 
 # Install Tesseract (OCR):
 #   Windows: winget install -e --id UB-Mannheim.TesseractOCR
@@ -26,7 +26,7 @@ pylint pdf/scripts/*.py --rcfile=.pylintrc
 ```
 
 ## OCR & Environment
-- **OCR**: Requires Tesseract. If not installed, `pymupdf4llm` will raise an error.
+- **OCR**: Requires Tesseract.
 - **Windows UTF-8**: Set `PYTHONIOENCODING=utf-8` before running Python PDF tools to avoid encoding errors.
 
 ## Workflow: write-paper-notes

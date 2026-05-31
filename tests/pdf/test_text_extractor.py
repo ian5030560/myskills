@@ -31,11 +31,4 @@ class TestTextExtractor:
         assert result.returncode == 1
         assert "file not found" in result.stderr
 
-    def test_markdown_format(self, simple_pdf, output_dir):
-        result = _run(["--pdf", str(simple_pdf), "--format", "markdown",
-                       "--output-dir", str(output_dir)])
-        assert result.returncode == 0
-        out_file = output_dir / simple_pdf.stem / "output.md"
-        assert out_file.exists()
-        content = out_file.read_text(encoding="utf-8")
-        assert len(content) > 0
+

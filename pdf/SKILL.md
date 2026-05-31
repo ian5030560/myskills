@@ -17,13 +17,13 @@ metadata:
 user-invocable: true
 ---
 
-Extract, manipulate, and secure PDFs using PyMuPDF (fitz) and pymupdf4llm with built-in Tesseract OCR.
+Extract, manipulate, and secure PDFs using PyMuPDF (fitz) with built-in Tesseract OCR.
 
 **Five tools** cover the full PDF lifecycle:
 
 | Tool | Category | Description |
 |------|----------|-------------|
-| `pdf_text_extractor.py` | **Extraction** | Text only (plain text or Markdown). No images, no OCR. |
+| `pdf_text_extractor.py` | **Extraction** | Text only (plain text). No images, no OCR. |
 | `pdf_images_extractor.py` | **Extraction** | Images with optional OCR. No text formatting. |
 | `pdf_table_extractor.py` | **Extraction** | Table detection and Markdown conversion. |
 | `pdf_manager.py` | **Manipulation** | Merge, split, rotate pages, and manage metadata. |
@@ -32,7 +32,7 @@ Extract, manipulate, and secure PDFs using PyMuPDF (fitz) and pymupdf4llm with b
 ## Dependencies
 
 ```bash
-pip install pymupdf4llm
+pip install PyMuPDF
 ```
 
 Tesseract system installation (required for OCR):
@@ -47,18 +47,11 @@ Verify installation: `tesseract --version`
 
 ## Tool 1: pdf_text_extractor.py
 
-Extract PDF content as plain text or structured Markdown without images or OCR.
+Extract PDF content as plain text without images or OCR.
 
 ### Usage
-
-**Plain text (default):**
 ```bash
 python pdf/scripts/pdf_text_extractor.py --pdf <path> [--output-dir <dir>]
-```
-
-**Structured Markdown:**
-```bash
-python pdf/scripts/pdf_text_extractor.py --pdf <path> --format markdown [--output-dir <dir>]
 ```
 
 ### Parameters
@@ -67,7 +60,7 @@ python pdf/scripts/pdf_text_extractor.py --pdf <path> --format markdown [--outpu
 |-----------|----------|---------|-------------|
 | `--pdf` | Yes | — | Input PDF file path |
 | `--output-dir` | No | Current dir | Parent directory for output; creates `<pdf_stem>/` subfolder |
-| `--format` | No | `text` | Output format: `text` (plain) or `markdown` (structured) |
+
 
 ### Output
 
@@ -235,10 +228,10 @@ python pdf/scripts/pdf_table_extractor.py --pdf <path> [--output-dir <dir>]
 
 ## How It Works
 
-- **Text**: `pdf_text_extractor.py` uses `fitz.Page.get_text()` for plain text or `pymupdf4llm.to_markdown(write_images=False)` for Markdown
+- **Text**: `pdf_text_extractor.py` uses `fitz.Page.get_text()` for plain text extraction
 - **Images**: Via `fitz.Page.get_images()` — original embedded format (JPEG/PNG), no re-encoding
 - **OCR**: `fitz.Pixmap.pdfocr_tobytes()` — native PyMuPDF Tesseract integration
-- **Tables**: `pdf_table_extractor.py` uses `page.find_tables().extract()` — native PyMuPDF table detection with automated Markdown formatting. (Legacy: `pymupdf4llm` markdown mode may also include basic tables.)
+- **Tables**: `pdf_table_extractor.py` uses `page.find_tables().extract()` — native PyMuPDF table detection with automated Markdown formatting.
 - **Merge**: `fitz.open().insert_pdf()` — zero-copy page insertion for high-speed merging
 - **Split**: `fitz.open().insert_pdf(src, from_page=..., to_page=...)` — exact page-range extraction
 - **Rotate**: `page.set_rotation()` — native page-level rotation without re-encoding

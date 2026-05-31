@@ -3,19 +3,10 @@ import sys
 from pathlib import Path
 
 import fitz
-import pymupdf4llm
 
 
-def extract_text(pdf_path: str, output_dir: Path, fmt: str = "text") -> str:
+def extract_text(pdf_path: str, output_dir: Path) -> str:
     output_dir.mkdir(exist_ok=True, parents=True)
-
-    if fmt == "markdown":
-        md_text = pymupdf4llm.to_markdown(
-            pdf_path,
-            write_images=False,
-            page_chunks=False,
-        )
-        return md_text
 
     with fitz.open(pdf_path) as doc:
         pages = []
@@ -29,8 +20,6 @@ def main():
         description="Extract text from PDF")
     parser.add_argument("--pdf", required=True, help="Input PDF file path")
     parser.add_argument("--output-dir", help="Parent directory for output (default: current dir)")
-    parser.add_argument("--format", default="text", choices=["text", "markdown"],
-                        help="Output format: plain text (default) or markdown")
     args = parser.parse_args()
 
     input_path = Path(args.pdf)
@@ -42,7 +31,7 @@ def main():
     output_dir = base_dir / input_path.stem
     output_dir.mkdir(exist_ok=True, parents=True)
 
-    output = extract_text(str(input_path), output_dir, fmt=args.format)
+    output = extract_text(str(input_path), output_dir)
 
     output_file = output_dir / "output.md"
     output_file.write_text(output, encoding="utf-8")
