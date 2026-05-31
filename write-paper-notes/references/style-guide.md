@@ -46,3 +46,4 @@
 - Use descriptive titles above each diagram as a bold heading.
 - Keep node labels concise (1-5 words). Prefer `graph TD` (top-down) for most processes.
 - Ensure the diagram represents a clear logical relationship — do not generate decorative diagrams.
+- Reference: https://mermaid.js.org/syntax/

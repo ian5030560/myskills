@@ -22,6 +22,30 @@ import pymupdf4llm
 from pymupdf4llm.ocr import tesseract_api
 
 
+def _is_significant_drawing(cluster_rect, paths):
+    d = cluster_rect.width * 0.025 if cluster_rect.width > cluster_rect.height else cluster_rect.height * 0.025
+    inner = cluster_rect + (d, d, -d, -d)
+
+    my_paths = [p for p in paths if p["rect"] in cluster_rect]
+    if not my_paths:
+        return False
+
+    if len(my_paths) == 1:
+        pr = my_paths[0]["rect"]
+        return not pr.is_empty and not (pr & inner).is_empty
+
+    widths = set(round(p["rect"].width) for p in my_paths) | {round(cluster_rect.width)}
+    heights = set(round(p["rect"].height) for p in my_paths) | {round(cluster_rect.height)}
+    if len(widths) == 1 or len(heights) == 1:
+        return False
+
+    for p in my_paths:
+        pr = p["rect"]
+        if not (pr.is_empty or (pr & inner).is_empty):
+            return True
+    return False
+
+
 def extract_pdf(pdf_path: str, output_dir: Path, use_ocr: bool = True,
                 ocr_language: str = "eng") -> str:
     output_dir.mkdir(exist_ok=True, parents=True)
@@ -36,6 +60,7 @@ def extract_pdf(pdf_path: str, output_dir: Path, use_ocr: bool = True,
         ocr_language=ocr_language,
         page_chunks=True,
         force_text=True,
+        use_ocr=False,
     )
 
     with fitz.open(pdf_path) as doc:
@@ -68,6 +93,29 @@ def extract_pdf(pdf_path: str, output_dir: Path, use_ocr: bool = True,
                     ocr_pdf.close()
                     if ocr_text and ocr_text.strip():
                         page_md += ocr_text.strip() + "\n"
+
+            paths = page.get_drawings()
+            if paths:
+                page_rect = page.rect
+                filtered_paths = [
+                    p for p in paths
+                    if p["rect"].width < page_rect.width * 0.95
+                    and p["rect"].height < page_rect.height * 0.95
+                    and p["rect"].width > 5
+                    and p["rect"].height > 5
+                ]
+                if filtered_paths:
+                    clusters = page.cluster_drawings(
+                        drawings=filtered_paths,
+                        x_tolerance=20,
+                        y_tolerance=20,
+                    )
+                    for vg_idx, cluster_rect in enumerate(clusters):
+                        if _is_significant_drawing(cluster_rect, filtered_paths):
+                            pix = page.get_pixmap(clip=cluster_rect, dpi=150)
+                            img_filename = f"{pdf_stem}_{page_num+1:04d}_v{vg_idx+1:02d}.png"
+                            pix.save(str(image_dir / img_filename))
+                            page_md += f"\n![Vector Graphic](images/{img_filename})\n"
 
             full_md_pages.append(page_md)
 

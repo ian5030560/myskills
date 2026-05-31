@@ -37,6 +37,17 @@ class TestExtract:
         assert result.returncode == 0
         assert (output_dir / "simple" / "images").is_dir()
 
+    def test_vector_graphics_extracted(self, vector_pdf, output_dir):
+        result = _run(["--pdf", str(vector_pdf), "--output-dir", str(output_dir), "--no-ocr"])
+        assert result.returncode == 0
+        assert "Paper with vector diagrams" in result.stdout
+        img_dir = output_dir / "vector" / "images"
+        assert img_dir.is_dir()
+        vg_files = [f for f in img_dir.iterdir() if "_v" in f.stem]
+        assert len(vg_files) > 0
+        for f in vg_files:
+            assert f.stat().st_size > 100
+
     def test_no_ocr_flag_with_image_pdf(self, images_pdf, output_dir):
         result = _run(["--pdf", str(images_pdf), "--output-dir", str(output_dir), "--no-ocr"])
         assert result.returncode == 0
