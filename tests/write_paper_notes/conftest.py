@@ -40,6 +40,19 @@ def _create_images_pdf(path):
     doc.close()
 
 
+def _create_tiny_image_pdf(path):
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 72), "Tiny images test", fontsize=12)
+    tmp = fitz.open()
+    tp = tmp.new_page(width=1, height=36)
+    pix = tp.get_pixmap(dpi=72)
+    tmp.close()
+    page.insert_image((72, 100, 73, 136), pixmap=pix)
+    doc.save(str(path))
+    doc.close()
+
+
 def _create_vector_pdf(path):
     doc = fitz.open()
     page = doc.new_page()
@@ -67,6 +80,7 @@ def fixtures_dir(tmp_path_factory):
     _create_multi_page_pdf(d / "multi_page.pdf")
     _create_images_pdf(d / "images.pdf")
     _create_vector_pdf(d / "vector.pdf")
+    _create_tiny_image_pdf(d / "tiny.pdf")
     return d
 
 
@@ -88,6 +102,11 @@ def images_pdf(fixtures_dir):
 @pytest.fixture
 def vector_pdf(fixtures_dir):
     return fixtures_dir / "vector.pdf"
+
+
+@pytest.fixture
+def tiny_image_pdf(fixtures_dir):
+    return fixtures_dir / "tiny.pdf"
 
 
 @pytest.fixture
