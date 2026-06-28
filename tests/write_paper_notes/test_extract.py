@@ -6,7 +6,9 @@ from unittest.mock import patch
 import pytest
 import fitz
 
-from extract import ocr_image_bytes, DocumentExtractor, PdfExtractor
+from base import DocumentExtractor
+from extract_docx import DocxExtractor
+from extract_pdf import ocr_image_bytes, PdfExtractor
 
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent.parent / "write-paper-notes" / "scripts"
 EXTRACT_SCRIPT = SCRIPTS_DIR / "extract.py"
@@ -26,12 +28,16 @@ class TestExtractCLI:
     """End-to-end tests via subprocess — CLI-specific behavior only."""
 
     def test_file_not_found_exit_code(self):
-        result = _run(["--pdf", "nonexistent.pdf"])
+        result = _run(["--input", "nonexistent.pdf"])
+        assert result.returncode == 1
+
+    def test_unsupported_format(self):
+        result = _run(["--input", "input.txt"])
         assert result.returncode == 1
 
     def test_default_output_dir_creates_stem_subfolder(self, simple_pdf, tmp_path):
         result = subprocess.run(
-            [sys.executable, str(EXTRACT_SCRIPT), "--pdf", str(simple_pdf), "--no-ocr"],
+            [sys.executable, str(EXTRACT_SCRIPT), "--input", str(simple_pdf), "--no-ocr"],
             capture_output=True, text=True, encoding="utf-8",
             cwd=str(tmp_path),
         )
@@ -42,10 +48,26 @@ class TestExtractCLI:
         assert (expected_dir / "images").is_dir()
 
     def test_multi_page_stdout(self, multi_page_pdf, output_dir):
-        result = _run(["--pdf", str(multi_page_pdf), "--output-dir", str(output_dir), "--no-ocr"])
+        result = _run(["--input", str(multi_page_pdf), "--output-dir", str(output_dir), "--no-ocr"])
         assert result.returncode == 0
         for i in range(1, 4):
             assert f"Section {i}" in result.stdout
+
+    def test_docx_stdout(self, simple_docx, output_dir):
+        result = _run(["--input", str(simple_docx), "--output-dir", str(output_dir), "--no-ocr"])
+        assert result.returncode == 0
+        assert "Hello World - Paper Notes" in result.stdout
+
+    def test_docx_default_output_dir(self, simple_docx, tmp_path):
+        result = subprocess.run(
+            [sys.executable, str(EXTRACT_SCRIPT), "--input", str(simple_docx), "--no-ocr"],
+            capture_output=True, text=True, encoding="utf-8",
+            cwd=str(tmp_path),
+        )
+        assert result.returncode == 0
+        expected_dir = tmp_path / "simple"
+        assert expected_dir.is_dir()
+        assert (expected_dir / "images").is_dir()
 
 
 # ── Module-level helper tests ─────────────────────────────────────────
@@ -162,3 +184,71 @@ class TestPdfExtractor:
         ext = PdfExtractor(str(tiny_image_pdf), tmp_path / "out", use_ocr=True)
         result = ext.extract()
         assert "Tiny images test" in result
+
+
+# ── DocxExtractor unit tests ───────────────────────────────────────────
+
+
+class TestDocxExtractor:
+    """Unit tests for DocxExtractor (direct import, no subprocess)."""
+
+    def test_extract_returns_markdown_with_text(self, simple_docx, tmp_path):
+        ext = DocxExtractor(str(simple_docx), tmp_path / "out", use_ocr=False)
+        result = ext.extract()
+        assert "Hello World - Paper Notes" in result
+        assert "This is a test paper document." in result
+
+    def test_directories_created(self, simple_docx, tmp_path):
+        ext = DocxExtractor(str(simple_docx), tmp_path / "out", use_ocr=False)
+        ext.extract()
+        assert (tmp_path / "out").is_dir()
+        assert (tmp_path / "out" / "images").is_dir()
+
+    def test_headings(self, headings_docx, tmp_path):
+        ext = DocxExtractor(str(headings_docx), tmp_path / "out", use_ocr=False)
+        result = ext.extract()
+        assert "# Section 1" in result
+        assert "## Subsection A" in result
+        assert "# Section 2" in result
+
+    def test_table(self, table_docx, tmp_path):
+        ext = DocxExtractor(str(table_docx), tmp_path / "out", use_ocr=False)
+        result = ext.extract()
+        assert "| Name " in result
+        assert "| Score " in result
+        assert "| Alice " in result
+        assert "| Bob " in result
+
+    def test_table_markdown_format(self, table_docx, tmp_path):
+        ext = DocxExtractor(str(table_docx), tmp_path / "out", use_ocr=False)
+        result = ext.extract()
+        assert "| --- " in result
+
+    def test_bullet_list(self, bullets_docx, tmp_path):
+        ext = DocxExtractor(str(bullets_docx), tmp_path / "out", use_ocr=False)
+        result = ext.extract()
+        assert "- First item" in result
+        assert "- Second item" in result
+        assert "- Third item" in result
+
+    def test_numbered_list(self, numbers_docx, tmp_path):
+        ext = DocxExtractor(str(numbers_docx), tmp_path / "out", use_ocr=False)
+        result = ext.extract()
+        # Numbered list items get "1. " prefix in markdown
+        assert "1. Step one" in result
+        assert "1. Step two" in result
+        assert "1. Step three" in result
+
+    def test_images_extracted(self, image_docx, tmp_path):
+        ext = DocxExtractor(str(image_docx), tmp_path / "out", use_ocr=False)
+        result = ext.extract()
+        assert "Figures" in result
+        img_dir = tmp_path / "out" / "images"
+        images = list(img_dir.iterdir())
+        assert len(images) > 0
+        assert "![Image](images/" in result
+
+    def test_empty_no_crash(self, empty_docx, tmp_path):
+        ext = DocxExtractor(str(empty_docx), tmp_path / "out", use_ocr=False)
+        result = ext.extract()
+        assert result == ""

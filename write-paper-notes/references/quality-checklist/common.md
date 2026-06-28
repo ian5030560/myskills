@@ -1,14 +1,12 @@
-# Quality Checklist
+# Quality Checklist — Common
 
 Check each item before final delivery. All must pass.
 
 ## Structure
-- [ ] Title is present: `# Paper Title: <name>`
-- [ ] Paper-level `## Summary` present after title
-- [ ] Every `##` section has a `### Summary`
-- [ ] Every `###` subsection has a summary paragraph
+- [ ] Title is present as `# <name>` at top of the document
 - [ ] Original heading hierarchy preserved
 - [ ] All content grouped under headings (no orphan text)
+- [ ] Each `##` section begins with a concise introductory paragraph
 
 ## Content
 - [ ] Key points formatted as bullet/numbered lists (not prose blocks)
@@ -22,10 +20,13 @@ Check each item before final delivery. All must pass.
 - [ ] Alt text is descriptive (no generic `Image` labels)
 - [ ] All extracted images present in notes.md
 
+## Architecture / Flow
+- [ ] Original paper figure used when available
+- [ ] Mermaid diagram only used when no architecture/flow figure exists
+
 ## Formatting
 - [ ] Math expressions use LaTeX (`$...$` or `$$...$$`)
 - [ ] Code uses Markdown code blocks or inline backticks
-- [ ] Summaries appear ABOVE content, not below
 
 ## Diagrams (Mermaid)
 - [ ] Diagrams only generated when they add value (no simple flowchart duplication)

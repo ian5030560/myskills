@@ -1,11 +1,9 @@
-# Style Guide for Organized Notes
+# Style Guide — Common Rules
 
 ## Structure
-- Every `##` section MUST have a `### Summary` subsection at the top.
-- Every `###` subsection MUST have a concise summary paragraph at the top.
 - Group all content under the appropriate heading level. No orphan text outside sections.
 - Preserve the original heading hierarchy from the paper.
-- Paper-level `## Summary` must appear after the title.
+- Begin each `##` section with a concise introductory paragraph.
 
 ## Content Transformation
 - Restructure: extract key points into bullet/numbered lists (not prose paragraphs).
@@ -23,10 +21,10 @@
 - Code: Markdown code blocks for multi-line code; backticks (`` ` ``) for variables, function names, or short commands.
 - Remove redundancy: merge related text, but never remove images.
 
-## Summaries
-- Every `##` section gets a `### Summary`.
-- Every `###` subsection gets a summary paragraph.
-- Summaries go ABOVE the section content, not below.
+## Architecture / Flow Diagrams
+- **Priority 1:** Use the original figure from the paper (`images/filename.png`).
+- **Priority 2:** Only generate a Mermaid diagram if the paper has NO architecture or flow figure.
+- Mermaid diagrams must be fenced with ```` ```mermaid ````.
 
 ## Visualizations (Mermaid)
 
@@ -34,7 +32,6 @@
 | Original content | Action |
 |:---|:---|
 | Simple flowchart image | Skip Mermaid — original image is sufficient |
-| Complex architecture image | Generate high-level Mermaid `graph TD` for overview; keep original for detail |
 | Text-only logic/process | Generate Mermaid to visualize the implicit flow |
 | Data table (parameters, metrics) | Keep Markdown table — do NOT convert to Mermaid |
 | Classification / hierarchy table | Transform to `mindmap` |

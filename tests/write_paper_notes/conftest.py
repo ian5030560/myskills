@@ -1,8 +1,12 @@
+import io
 import sys
 from pathlib import Path
 
 import pytest
 import fitz
+from docx import Document as DocxDocument
+from docx.shared import Inches
+from PIL import Image
 
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent.parent / "write-paper-notes" / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
@@ -73,6 +77,76 @@ def _create_vector_pdf(path):
     doc.close()
 
 
+def _create_simple_docx(path):
+    doc = DocxDocument()
+    doc.add_paragraph("Hello World - Paper Notes")
+    doc.add_paragraph("This is a test paper document.")
+    doc.save(str(path))
+
+
+def _create_docx_with_headings(path):
+    doc = DocxDocument()
+    doc.add_heading("Section 1", level=1)
+    doc.add_heading("Subsection A", level=2)
+    doc.add_paragraph("Content under subsection A.")
+    doc.add_heading("Section 2", level=1)
+    doc.add_paragraph("Content under section 2.")
+    doc.save(str(path))
+
+
+def _create_docx_with_table(path):
+    doc = DocxDocument()
+    doc.add_heading("Results", level=1)
+    table = doc.add_table(rows=3, cols=3)
+    table.cell(0, 0).text = "Name"
+    table.cell(0, 1).text = "Score"
+    table.cell(0, 2).text = "Grade"
+    table.cell(1, 0).text = "Alice"
+    table.cell(1, 1).text = "95"
+    table.cell(1, 2).text = "A"
+    table.cell(2, 0).text = "Bob"
+    table.cell(2, 1).text = "82"
+    table.cell(2, 2).text = "B"
+    doc.save(str(path))
+
+
+def _create_docx_with_image(path):
+    doc = DocxDocument()
+    doc.add_heading("Figures", level=1)
+    doc.add_paragraph("Below is a sample figure:")
+
+    buf = io.BytesIO()
+    Image.new("RGB", (100, 50), color=(200, 200, 200)).save(buf, format="PNG")
+    buf.seek(0)
+    doc.add_picture(buf, width=Inches(2))
+
+    doc.add_paragraph("End of figures.")
+    doc.save(str(path))
+
+
+def _create_docx_empty(path):
+    doc = DocxDocument()
+    doc.save(str(path))
+
+
+def _create_docx_with_bullets(path):
+    doc = DocxDocument()
+    doc.add_heading("Findings", level=1)
+    doc.add_paragraph("First item", style="List Bullet")
+    doc.add_paragraph("Second item", style="List Bullet")
+    doc.add_paragraph("Third item", style="List Bullet")
+    doc.save(str(path))
+
+
+def _create_docx_with_numbers(path):
+    doc = DocxDocument()
+    doc.add_heading("Steps", level=1)
+    doc.add_paragraph("Step one", style="List Number")
+    doc.add_paragraph("Step two", style="List Number")
+    doc.add_paragraph("Step three", style="List Number")
+    doc.save(str(path))
+
+
 @pytest.fixture(scope="session")
 def fixtures_dir(tmp_path_factory):
     d = tmp_path_factory.mktemp("fixtures")
@@ -81,6 +155,13 @@ def fixtures_dir(tmp_path_factory):
     _create_images_pdf(d / "images.pdf")
     _create_vector_pdf(d / "vector.pdf")
     _create_tiny_image_pdf(d / "tiny.pdf")
+    _create_simple_docx(d / "simple.docx")
+    _create_docx_with_headings(d / "headings.docx")
+    _create_docx_with_table(d / "table.docx")
+    _create_docx_with_image(d / "image.docx")
+    _create_docx_empty(d / "empty.docx")
+    _create_docx_with_bullets(d / "bullets.docx")
+    _create_docx_with_numbers(d / "numbers.docx")
     return d
 
 
@@ -114,3 +195,38 @@ def output_dir(tmp_path):
     d = tmp_path / "output"
     d.mkdir()
     return d
+
+
+@pytest.fixture
+def simple_docx(fixtures_dir):
+    return fixtures_dir / "simple.docx"
+
+
+@pytest.fixture
+def headings_docx(fixtures_dir):
+    return fixtures_dir / "headings.docx"
+
+
+@pytest.fixture
+def table_docx(fixtures_dir):
+    return fixtures_dir / "table.docx"
+
+
+@pytest.fixture
+def image_docx(fixtures_dir):
+    return fixtures_dir / "image.docx"
+
+
+@pytest.fixture
+def empty_docx(fixtures_dir):
+    return fixtures_dir / "empty.docx"
+
+
+@pytest.fixture
+def bullets_docx(fixtures_dir):
+    return fixtures_dir / "bullets.docx"
+
+
+@pytest.fixture
+def numbers_docx(fixtures_dir):
+    return fixtures_dir / "numbers.docx"
