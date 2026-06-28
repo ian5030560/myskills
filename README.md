@@ -22,20 +22,24 @@ npx skills add ian5030560/myskills --skill pdf
 
 ## write-paper-notes
 
-7-step pipeline that analyzes PDF academic papers and generates structured Markdown notes. Requires an installed PDF extraction skill (any skill capable of text, image, and table extraction).
+Extract content from PDF/DOCX academic papers and generate structured Markdown notes with type-aware templates and automated quality review.
 
 ### Features
 
-- **3 extraction roles** — Text, Images, Tables; auto-discovers available tools per session
-- **AI type auto-detection** — Image-input AI skips OCR; Text-only AI uses a 3-tier OCR fallback
-- **Plain text extraction** — AI infers heading structure from content cues (numbering, spacing, paper structure)
-- **Table alignment** — Tables inserted at their contextual position, not grouped at end
-- **Modular style guide** — 17 rules in 5 modules (Structural, Synthesis, Table Integration, Formatting, Visuals)
-- **Quality gate** — Automated checklist verification before final delivery
+- **CLI extractor** — Python scripts powered by PyMuPDF (PDF) and python-docx (DOCX)
+- **Type-aware templates** — CS/AI/ML and Survey/Review templates with section-specific guidance
+- **Figure extraction** — Images, tables, and vector graphics from PDFs; inline images from DOCX
+- **On-demand OCR** — Tesseract integration for text-only AIs; skip with `--no-ocr` for image-input AIs
+- **Diagnostic diagrams** — Mermaid timeline, mindmap, state diagram generated per style guide
+- **Modular style guide** — Common rules + type-specific rules for structure, formatting, and diagrams
+- **Quality gate** — Common + type-specific checklist verification before delivery
 
-### Pipeline (7 Steps)
+### Pipeline (4 Phases)
 
-1. Capability Discovery → 2. Content Extraction → 3. Extraction Gate → 4. Content Analysis → 5. Structural Organization → 6. Quality Review → 7. Final Delivery
+1. **Extraction** — `scripts/extract.py --input <file>` outputs Markdown text + `images/`
+2. **Content Analysis** — AI identifies paper structure and detects paper type
+3. **Organization** — AI loads templates + style guides to produce `notes.md`
+4. **Quality Review** — AI validates against checklists, fixes issues iteratively
 
 ### Installation
 
