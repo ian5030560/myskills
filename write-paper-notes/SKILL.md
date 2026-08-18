@@ -33,36 +33,18 @@ Install based on your input file format:
   python -c "import docx; print('python-docx OK')"
   ```
 
-### 2. Install OCR (Only when your AI does NOT support image input)
-
-- **Python packages**
-  ```bash
-  pip install pytesseract Pillow
-  python -c "import pytesseract; from PIL import Image; print('OCR packages OK')"
-  ```
-- **Tesseract system engine**
-  - Windows: `winget install -e --id UB-Mannheim.TesseractOCR`
-  - macOS: `brew install tesseract`
-  - Ubuntu/Debian: `sudo apt-get install tesseract-ocr`
-  - Fedora: `sudo dnf install tesseract`
-  - Arch Linux: `sudo pacman -S tesseract`
-
-  ```bash
-  tesseract --version
-  ```
-
 ### Windows UTF-8 Encoding (Required)
 
-Windows console default encoding (cp950/Big5) cannot handle UTF-8 characters in PDFs. Set this before running:
+Windows console default encoding (cp950/Big5) cannot handle UTF-8 characters in PDFs. Environment variables do not persist across separate tool calls, so set `PYTHONIOENCODING` in the *same* command as the script invocation (chained, not a separate call):
 
 **PowerShell:**
 ```powershell
-$env:PYTHONIOENCODING="utf-8"
+$env:PYTHONIOENCODING="utf-8"; python scripts/extract.py --input <file> [--output-dir <dir>]
 ```
 
 **CMD:**
 ```cmd
-set PYTHONIOENCODING=utf-8
+set PYTHONIOENCODING=utf-8 && python scripts/extract.py --input <file> [--output-dir <dir>]
 ```
 
 ## Pipeline
@@ -75,23 +57,17 @@ set PYTHONIOENCODING=utf-8
 
 Run the extraction script:
 
-1. **If your AI supports image input** — add `--no-ocr`:
-   ```
-   python scripts/extract.py --input <file> [--output-dir <dir>] --no-ocr
-   ```
-2. **Otherwise (text-only AI)** — ensure OCR is installed and omit `--no-ocr`:
-   ```
-   python scripts/extract.py --input <file> [--output-dir <dir>]
-   ```
+```
+python scripts/extract.py --input <file> [--output-dir <dir>]
+```
 
 Parameters:
 - `--input` (required): File path (.pdf or .docx)
 - `--output-dir` (optional): Parent directory (default: current dir)
-- `--no-ocr` (optional): Disable OCR — only when AI supports image input
 
 Outputs:
 - Extracted text in stdout
-- `images/` — extracted figures (original quality, with OCR text if enabled)
+- `images/` — extracted figures (original quality)
 
 Output directory structure (Phase 3 saves `notes.md` here):
   <output-dir>/<input-stem>/
@@ -99,8 +75,7 @@ Output directory structure (Phase 3 saves `notes.md` here):
   └── (notes.md will be created here in Phase 3)
 
 ### Phase 2 — Content Analysis
-- **Image-input AI**: Examine each image in `images/`, describe what it shows.
-- **Text-only AI**: Read the OCR text to understand image content.
+Examine each image in `images/` and describe what it shows.
 
 Identify the paper's structure: sections, figures, tables, and their relationships.
 

@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
 """Abstract base class for document extractors."""
 
-import io
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
-
-import pytesseract
-from PIL import Image
 
 
 @dataclass
@@ -16,17 +11,6 @@ class PageElement:
     kind: str
     bbox: tuple
     markdown: str
-
-
-def ocr_image_bytes(img_bytes: bytes, _ext: str = "", ocr_language: str = "eng") -> Optional[str]:
-    try:
-        image = Image.open(io.BytesIO(img_bytes))
-        if image.width < 3 or image.height < 3:
-            return None
-        text = pytesseract.image_to_string(image, lang=ocr_language).strip()
-        return text or None
-    except (OSError, pytesseract.TesseractError, RuntimeError):
-        return None
 
 
 def format_table(table) -> str:
@@ -54,13 +38,10 @@ def clean_output(text: str) -> str:
 
 
 class DocumentExtractor(ABC):
-    def __init__(self, file_path: str, output_dir: Path,
-                 use_ocr: bool = True, ocr_language: str = "eng"):
+    def __init__(self, file_path: str, output_dir: Path):
         self.file_path = file_path
         self.output_dir = output_dir
         self.image_dir = output_dir / "images"
-        self.use_ocr = use_ocr
-        self.ocr_language = ocr_language
 
     def extract(self) -> str:
         self._setup_directories()

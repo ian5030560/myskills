@@ -9,7 +9,7 @@ from collections import defaultdict
 
 import fitz
 
-from base import DocumentExtractor, PageElement, clean_output, format_table, ocr_image_bytes
+from base import DocumentExtractor, PageElement, clean_output, format_table
 
 
 def _is_significant_drawing(cluster_rect, paths) -> bool:
@@ -79,8 +79,8 @@ def _get_header_id(span: dict, body_limit: float, header_id: dict) -> str:
 
 
 class PdfExtractor(DocumentExtractor):
-    def __init__(self, file_path: str, output_dir, use_ocr: bool = True, ocr_language: str = "eng"):
-        super().__init__(file_path, output_dir, use_ocr=use_ocr, ocr_language=ocr_language)
+    def __init__(self, file_path: str, output_dir):
+        super().__init__(file_path, output_dir)
         self._doc = None
 
     def load(self):
@@ -186,10 +186,6 @@ class PdfExtractor(DocumentExtractor):
             (self.image_dir / img_filename).write_bytes(base["image"])
 
             md = f"\n![Image](images/{img_filename})\n"
-            if self.use_ocr:
-                ocr_text = ocr_image_bytes(base["image"], ext, self.ocr_language)
-                if ocr_text:
-                    md += ocr_text + "\n"
 
             elements.append(PageElement("image", bbox, md))
 

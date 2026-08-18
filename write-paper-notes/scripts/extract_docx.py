@@ -8,13 +8,12 @@ from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
 from docx.table import Table as DocxTable
 
-from base import DocumentExtractor, PageElement, clean_output, ocr_image_bytes
+from base import DocumentExtractor, PageElement, clean_output
 
 
 class DocxExtractor(DocumentExtractor):
-    def __init__(self, file_path: str, output_dir,
-                 use_ocr: bool = True, ocr_language: str = "eng"):
-        super().__init__(file_path, output_dir, use_ocr=use_ocr, ocr_language=ocr_language)
+    def __init__(self, file_path: str, output_dir):
+        super().__init__(file_path, output_dir)
         self._doc = None
         self._saved_images = {}
 
@@ -84,13 +83,6 @@ class DocxExtractor(DocumentExtractor):
                 if not filename:
                     continue
                 md = f"\n![Image](images/{filename})\n"
-                if self.use_ocr:
-                    img_bytes = self._get_image_bytes(img_id)
-                    if img_bytes:
-                        ext = Path(filename).suffix.lstrip(".")
-                        ocr_text = ocr_image_bytes(img_bytes, ext, self.ocr_language)
-                        if ocr_text:
-                            md += ocr_text + "\n"
                 parts.append(md)
             return PageElement("text", (0, 0, 0, 0), "\n".join(parts))
 
@@ -103,12 +95,6 @@ class DocxExtractor(DocumentExtractor):
             if embed and embed in self._saved_images:
                 rel_ids.append(embed)
         return rel_ids
-
-    def _get_image_bytes(self, rel_id: str) -> bytes | None:
-        rel = self._doc.part.rels.get(rel_id)
-        if rel and hasattr(rel, "target_part"):
-            return rel.target_part.blob
-        return None
 
     def _process_table(self, t_element) -> PageElement | None:
         table = DocxTable(t_element, self._doc)

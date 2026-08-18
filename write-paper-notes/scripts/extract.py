@@ -17,8 +17,6 @@ def main():
     parser.add_argument("--output-dir", required=False,
                         help="Parent directory for output "
                              "(default: current dir; creates <stem> subfolder)")
-    parser.add_argument("--no-ocr", action="store_true",
-                        help="Disable OCR (for AI with image input capability)")
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -38,7 +36,7 @@ def main():
     base_dir = Path(args.output_dir) if args.output_dir else Path.cwd()
     output_dir = base_dir / input_path.stem
 
-    extractor = extractor_cls(str(input_path), output_dir, use_ocr=not args.no_ocr)
+    extractor = extractor_cls(str(input_path), output_dir)
     output = extractor.extract()
 
     print(output, flush=True)

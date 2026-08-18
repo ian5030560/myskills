@@ -12,7 +12,6 @@ Check each item before final delivery. All must pass.
 - [ ] Key points formatted as bullet/numbered lists (not prose blocks)
 - [ ] Comparative data organized in Markdown tables
 - [ ] Tables included only when the paper references them
-- [ ] No raw OCR text copied into notes.md
 - [ ] Redundancy removed (related text merged)
 
 ## Images

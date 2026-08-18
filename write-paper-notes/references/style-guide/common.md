@@ -12,10 +12,6 @@
 - Improve image alt text: replace generic `Image` with a precise descriptive phrase.
 - Flexible ordering: rearrange text, lists, tables, and images based on content logic, not original page order.
 
-## OCR Rules
-- OCR text is for AI reference only. Read it to understand image content.
-- Do NOT copy raw OCR output into `notes.md`.
-
 ## Formatting
 - Math formulas: use LaTeX (`$...$` inline, `$$...$$` display).
 - Code: Markdown code blocks for multi-line code; backticks (`` ` ``) for variables, function names, or short commands.
