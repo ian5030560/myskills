@@ -144,6 +144,21 @@ class TestPdfExtractor:
         ext.extract()
         assert len(list((tmp_path / "out" / "images").iterdir())) == 0
 
+    def test_caption_attached_below_image(self, captioned_image_pdf, tmp_path):
+        ext = PdfExtractor(str(captioned_image_pdf), tmp_path / "out")
+        result = ext.extract()
+        assert "![Image](images/0001_01" in result
+        img_pos = result.index("![Image](images/0001_01")
+        caption_pos = result.index("*Figure 1: Sample caption text.*")
+        assert caption_pos > img_pos
+        assert result.count("Figure 1: Sample caption text.") == 1
+
+    def test_caption_detected_without_keyword(self, unlabeled_caption_pdf, tmp_path):
+        ext = PdfExtractor(str(unlabeled_caption_pdf), tmp_path / "out")
+        result = ext.extract()
+        assert "*Model comparison across five benchmark datasets.*" in result
+        assert result.count("Model comparison across five benchmark datasets.") == 1
+
     def test_vector_graphics_in_output(self, vector_pdf, tmp_path):
         ext = PdfExtractor(str(vector_pdf), tmp_path / "out")
         result = ext.extract()

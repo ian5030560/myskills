@@ -5,11 +5,18 @@ PDF extraction logic for paper notes.
 Uses PyMuPDF (fitz) for text, table, image, and vector graphic extraction.
 """
 
+import re
 from collections import defaultdict
 
 import fitz
 
 from base import DocumentExtractor, PageElement, clean_output, format_table
+
+_CAPTION_RE = re.compile(r"^(figure|fig\.?|圖\s*片?)\s*\.?\s*\d", re.IGNORECASE)
+
+
+def _is_caption_text(text: str) -> bool:
+    return bool(_CAPTION_RE.match(text.strip()))
 
 
 def _is_significant_drawing(cluster_rect, paths) -> bool:
@@ -95,12 +102,17 @@ class PdfExtractor(DocumentExtractor):
 
         pages_md = []
         for page_num, page in enumerate(self._doc):
-            dict_blocks = page.get_text("dict", flags=fitz.TEXTFLAGS_TEXT)["blocks"]
+            # TEXTFLAGS_TEXT alone drops image blocks (type 1) from the dict,
+            # which _page_images needs for accurate bboxes; add them back.
+            dict_blocks = page.get_text(
+                "dict", flags=fitz.TEXTFLAGS_TEXT | fitz.TEXT_PRESERVE_IMAGES)["blocks"]
 
             table_elements, table_bboxes = self._page_tables(page)
 
-            text_elems = self._page_text(dict_blocks, body_limit, header_id, table_bboxes)
-            image_elems = self._page_images(page, dict_blocks, page_num, table_bboxes)
+            image_elems, caption_bboxes = self._page_images(
+                page, dict_blocks, page_num, table_bboxes, body_limit)
+            text_elems = self._page_text(
+                dict_blocks, body_limit, header_id, table_bboxes + caption_bboxes)
             vector_elems = self._page_vectors(page, page_num)
 
             elements = table_elements + text_elems + image_elems + vector_elems
@@ -159,14 +171,15 @@ class PdfExtractor(DocumentExtractor):
             bboxes.append(bbox)
         return elements, bboxes
 
-    def _page_images(self, page: fitz.Page, blocks: list,
-                     page_num: int, skip_bboxes: list) -> list:
+    def _page_images(self, page: fitz.Page, blocks: list, page_num: int,
+                     skip_bboxes: list, body_limit: float) -> tuple:
         img_dict_blocks = [b for b in blocks if b["type"] == 1]
         all_xrefs = [img[0] for img in page.get_images(full=True) if img[0] != 0]
         if not all_xrefs:
-            return []
+            return [], []
 
         elements = []
+        caption_bboxes = []
         for idx, xref in enumerate(all_xrefs):
             try:
                 base = self._doc.extract_image(xref)
@@ -187,9 +200,69 @@ class PdfExtractor(DocumentExtractor):
 
             md = f"\n![Image](images/{img_filename})\n"
 
+            caption = self._find_caption(bbox, blocks, skip_bboxes + caption_bboxes, body_limit)
+            if caption:
+                caption_text, caption_bbox = caption
+                md += f"*{caption_text}*\n"
+                caption_bboxes.append(caption_bbox)
+
             elements.append(PageElement("image", bbox, md))
 
-        return elements
+        return elements, caption_bboxes
+
+    def _find_caption(self, image_bbox: tuple, blocks: list,
+                      skip_bboxes: list, body_limit: float):
+        # Layout-first heuristic: a caption sits close to its figure, roughly
+        # aligned with it, in a non-heading font, and isn't a full paragraph.
+        # A leading "Figure"/"Fig."/"圖" is a scoring bonus, not a requirement,
+        # so captions in other phrasings/languages still get picked up.
+        ix0, iy0, ix1, iy1 = image_bbox
+        image_width = ix1 - ix0
+
+        best = None
+        best_score = None
+        for block in blocks:
+            if block["type"] != 0 or self._overlaps_any(block["bbox"], skip_bboxes):
+                continue
+
+            lines = block["lines"]
+            if not lines or len(lines) > 6:
+                continue
+
+            spans = [s for line in lines for s in line["spans"]]
+            text = " ".join(s["text"] for s in spans).strip()
+            if not text or round(spans[0]["size"]) > body_limit:
+                continue
+
+            bx0, by0, bx1, by1 = block["bbox"]
+            block_width = bx1 - bx0
+            narrower = min(image_width, block_width)
+            overlap = min(ix1, bx1) - max(ix0, bx0)
+            if narrower <= 0 or overlap / narrower < 0.3:
+                continue
+
+            gap_below = by0 - iy1
+            gap_above = iy0 - by1
+            if 0 <= gap_below <= 45:
+                gap, below = gap_below, True
+            elif 0 <= gap_above <= 45:
+                gap, below = gap_above, False
+            else:
+                continue
+
+            score = (45 - gap) + (overlap / narrower) * 20
+            if block_width <= image_width * 1.4:
+                score += 15
+            if below:
+                score += 10
+            if _is_caption_text(text):
+                score += 25
+
+            if best_score is None or score > best_score:
+                best_score = score
+                best = (text, block["bbox"])
+
+        return best
 
     def _page_vectors(self, page: fitz.Page, page_num: int) -> list:
         paths = page.get_drawings()

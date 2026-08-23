@@ -44,6 +44,38 @@ def _create_images_pdf(path):
     doc.close()
 
 
+def _create_captioned_image_pdf(path):
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 72), "Paper with a captioned figure.", fontsize=10)
+    tmp = fitz.open()
+    tp = tmp.new_page()
+    tp.insert_text((50, 100), "Chart", fontsize=24)
+    pix = tp.get_pixmap(dpi=72)
+    tmp.close()
+    page.insert_image((72, 120, 272, 320), pixmap=pix)
+    page.insert_text((72, 332), "Figure 1: Sample caption text.", fontsize=9)
+    page.insert_text((72, 400), "Body text continues after the figure.", fontsize=10)
+    doc.save(str(path))
+    doc.close()
+
+
+def _create_unlabeled_caption_pdf(path):
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 72), "Paper with an unlabeled caption.", fontsize=10)
+    tmp = fitz.open()
+    tp = tmp.new_page()
+    tp.insert_text((50, 100), "Chart", fontsize=24)
+    pix = tp.get_pixmap(dpi=72)
+    tmp.close()
+    page.insert_image((72, 120, 272, 320), pixmap=pix)
+    page.insert_text((72, 332), "Model comparison across five benchmark datasets.", fontsize=9)
+    page.insert_text((72, 400), "Body text continues after the figure.", fontsize=10)
+    doc.save(str(path))
+    doc.close()
+
+
 def _create_tiny_image_pdf(path):
     doc = fitz.open()
     page = doc.new_page()
@@ -153,6 +185,8 @@ def fixtures_dir(tmp_path_factory):
     _create_simple_pdf(d / "simple.pdf")
     _create_multi_page_pdf(d / "multi_page.pdf")
     _create_images_pdf(d / "images.pdf")
+    _create_captioned_image_pdf(d / "captioned.pdf")
+    _create_unlabeled_caption_pdf(d / "unlabeled_caption.pdf")
     _create_vector_pdf(d / "vector.pdf")
     _create_tiny_image_pdf(d / "tiny.pdf")
     _create_simple_docx(d / "simple.docx")
@@ -178,6 +212,16 @@ def multi_page_pdf(fixtures_dir):
 @pytest.fixture
 def images_pdf(fixtures_dir):
     return fixtures_dir / "images.pdf"
+
+
+@pytest.fixture
+def captioned_image_pdf(fixtures_dir):
+    return fixtures_dir / "captioned.pdf"
+
+
+@pytest.fixture
+def unlabeled_caption_pdf(fixtures_dir):
+    return fixtures_dir / "unlabeled_caption.pdf"
 
 
 @pytest.fixture
