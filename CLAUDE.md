@@ -45,6 +45,10 @@ make uninstall skill=<name>
 $env:PYTHONIOENCODING="utf-8"; python <script> ...
 ```
 
+## Commits
+
+Before every commit, show the user the planned commit arrangement and wait for their confirmation: how the changes are split into commits, which files go in each, and each commit message. Never commit without that confirmation, even if a commit was approved earlier.
+
 ## Architecture
 
 ### `pdf/` skill
@@ -71,3 +75,17 @@ A 3-step pipeline documented in `write-paper-notes/SKILL.md`. Only step 1 is exe
 - `tests/write_paper_notes/` mixes subprocess tests (CLI behavior) with direct `import extract_pdf, extract_docx, base` (unit tests for `PdfExtractor`/`DocxExtractor`/`DocumentExtractor`).
 - Each suite's `conftest.py` prepends its own skill's `scripts/` dir to `sys.path` so the direct imports resolve; `.pylintrc` does the same for `write-paper-notes/scripts` via `init-hook` (only that skill is linted this way).
 - All test fixtures (sample PDFs/DOCX) are generated at runtime inside `conftest.py` helpers (e.g. `_create_simple_pdf`, `_create_docx_with_image`) — there are no static fixture files on disk.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live as local markdown files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), recorded as a `Status:` line. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
