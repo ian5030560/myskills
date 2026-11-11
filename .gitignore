@@ -6,6 +6,7 @@ pyvenv.cfg
 __pycache__
 .pytest_cache
 /share/
+.claude
 /test-papers/
 *.pdf
 *.PDF
