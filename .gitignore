@@ -6,4 +6,7 @@ pyvenv.cfg
 __pycache__
 .pytest_cache
 /share/
-skills-lock.json
+/test-papers/
+*.pdf
+*.PDF
+*.docx
