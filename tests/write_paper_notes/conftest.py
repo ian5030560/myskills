@@ -1,12 +1,10 @@
-import io
+"""Fixtures for write-paper-notes tests. Every PDF is generated at runtime."""
+
 import sys
 from pathlib import Path
 
 import pytest
 import fitz
-from docx import Document as DocxDocument
-from docx.shared import Inches
-from PIL import Image
 
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent.parent / "write-paper-notes" / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
@@ -21,256 +19,234 @@ def _create_simple_pdf(path):
     doc.close()
 
 
-def _create_multi_page_pdf(path):
+# ── extract_text.py fixtures ──────────────────────────────────────────
+
+
+def _body_paragraph(n):
+    return f"Body paragraph {n} explains the method in enough words to fill a line. " * 3
+
+
+def _create_two_column_pdf(path):
     doc = fitz.open()
-    for i in range(3):
+    page = doc.new_page()  # 595 x 842
+    page.insert_textbox((60, 60, 535, 90), "SPANNING TITLE ACROSS BOTH COLUMNS", fontsize=14)
+    page.insert_textbox((60, 120, 285, 300), "LEFTTOP " + _body_paragraph(1), fontsize=9)
+    page.insert_textbox((60, 320, 285, 500), "LEFTBOTTOM " + _body_paragraph(2), fontsize=9)
+    page.insert_textbox((310, 120, 535, 300), "RIGHTTOP " + _body_paragraph(3), fontsize=9)
+    page.insert_textbox((310, 320, 535, 500), "RIGHTBOTTOM " + _body_paragraph(4), fontsize=9)
+    doc.save(str(path))
+    doc.close()
+
+
+def _create_running_header_pdf(path):
+    doc = fitz.open()
+    for i in range(4):
         page = doc.new_page()
-        page.insert_text((72, 72), f"Section {i+1}: Paper content", fontsize=12)
+        page.insert_text((60, 40), f"Journal of Testing Vol. {i + 3}", fontsize=8)
+        page.insert_textbox((60, 120, 535, 400), f"PAGEBODY{i + 1} " + _body_paragraph(i),
+                            fontsize=10)
+        page.insert_text((290, 815), str(i + 1), fontsize=8)
     doc.save(str(path))
     doc.close()
 
 
-def _create_images_pdf(path):
+def _create_merged_heading_pdf(path):
     doc = fitz.open()
     page = doc.new_page()
-    page.insert_text((72, 72), "Paper with figures", fontsize=12)
+    text = ("the previous section ends with this sentence about results.\n"
+            "3.2. Method Details\n"
+            "We describe the experi-\n"
+            "ment setup in this paragraph.")
+    page.insert_textbox((60, 100, 535, 300), text, fontsize=10)
+    doc.save(str(path))
+    doc.close()
+
+
+def _create_line_blocks_pdf(path):
+    """Widely spaced lines, so PyMuPDF puts every line in its own block."""
+    doc = fitz.open()
+    page = doc.new_page()
+    y = 100
+    for x, text in (
+            (72, "First paragraph line one continues across the page width here,"),
+            (72, "and its second line keeps going with more words to read,"),
+            (72, "ending the first paragraph here."),
+            (86, "Second paragraph starts with an indent and more words."),
+            (72, "It continues on a flush-left line."),
+            (72, "Figure 1. A caption right below the paragraph."),
+            (72, "- A bullet item on its own line.")):
+        page.insert_text((x, y), text, fontsize=10)
+        y += 21
+    page.insert_text((30, 600), "SIDEWAYS publisher marker", fontsize=10, rotate=90)
+    doc.save(str(path))
+    doc.close()
+
+
+def _create_references_pdf(path):
+    doc = fitz.open()
+    page = doc.new_page()
+    text = ("[30] Some Author and Another Author. A paper title. In Proceedings, pages 1-\n"
+            "346. Springer, 2019. 3\n"
+            "14. SIAM, 2001. 4\n"
+            "2 Background and Related Work\n"
+            "Body text after the heading.")
+    page.insert_textbox((60, 100, 535, 300), text, fontsize=10)
+    doc.save(str(path))
+    doc.close()
+
+
+def _add_image_only_page(doc):
+    page = doc.new_page()
     tmp = fitz.open()
     tp = tmp.new_page()
-    tp.insert_text((50, 100), "Figure 1: Results chart", fontsize=24)
-    pix = tp.get_pixmap(dpi=150)
-    tmp.close()
-    page.insert_image((72, 100, 372, 350), pixmap=pix)
-    doc.save(str(path))
-    doc.close()
-
-
-def _create_captioned_image_pdf(path):
-    doc = fitz.open()
-    page = doc.new_page()
-    page.insert_text((72, 72), "Paper with a captioned figure.", fontsize=10)
-    tmp = fitz.open()
-    tp = tmp.new_page()
-    tp.insert_text((50, 100), "Chart", fontsize=24)
+    tp.insert_text((50, 100), "Scanned words", fontsize=24)
     pix = tp.get_pixmap(dpi=72)
     tmp.close()
-    page.insert_image((72, 120, 272, 320), pixmap=pix)
-    page.insert_text((72, 332), "Figure 1: Sample caption text.", fontsize=9)
-    page.insert_text((72, 400), "Body text continues after the figure.", fontsize=10)
-    doc.save(str(path))
-    doc.close()
+    page.insert_image(page.rect, pixmap=pix)
 
 
-def _create_unlabeled_caption_pdf(path):
+def _create_partly_scanned_pdf(path):
     doc = fitz.open()
     page = doc.new_page()
-    page.insert_text((72, 72), "Paper with an unlabeled caption.", fontsize=10)
-    tmp = fitz.open()
-    tp = tmp.new_page()
-    tp.insert_text((50, 100), "Chart", fontsize=24)
-    pix = tp.get_pixmap(dpi=72)
-    tmp.close()
-    page.insert_image((72, 120, 272, 320), pixmap=pix)
-    page.insert_text((72, 332), "Model comparison across five benchmark datasets.", fontsize=9)
-    page.insert_text((72, 400), "Body text continues after the figure.", fontsize=10)
+    page.insert_text((72, 72), "Real text on page one.", fontsize=10)
+    _add_image_only_page(doc)
     doc.save(str(path))
     doc.close()
 
 
-def _create_tiny_image_pdf(path):
+def _create_fully_scanned_pdf(path):
     doc = fitz.open()
-    page = doc.new_page()
-    page.insert_text((72, 72), "Tiny images test", fontsize=12)
-    tmp = fitz.open()
-    tp = tmp.new_page(width=1, height=36)
-    pix = tp.get_pixmap(dpi=72)
-    tmp.close()
-    page.insert_image((72, 100, 73, 136), pixmap=pix)
+    _add_image_only_page(doc)
+    _add_image_only_page(doc)
     doc.save(str(path))
     doc.close()
-
-
-def _create_vector_pdf(path):
-    doc = fitz.open()
-    page = doc.new_page()
-    page.insert_text((72, 72), "Paper with vector diagrams", fontsize=12)
-
-    page.draw_rect(fitz.Rect(100, 150, 250, 200), color=(0, 0, 1), width=1.5)
-    page.insert_text((120, 175), "Step 1", fontsize=10)
-
-    page.draw_line(fitz.Point(175, 200), fitz.Point(175, 240), color=(0, 0, 1))
-
-    page.draw_rect(fitz.Rect(100, 240, 250, 290), color=(0, 0, 1), width=1.5)
-    page.insert_text((120, 265), "Step 2", fontsize=10)
-
-    page.draw_circle(fitz.Point(400, 200), 30, color=(1, 0, 0), width=1.5)
-    page.insert_text((390, 200), "Y/N", fontsize=8)
-
-    doc.save(str(path))
-    doc.close()
-
-
-def _create_simple_docx(path):
-    doc = DocxDocument()
-    doc.add_paragraph("Hello World - Paper Notes")
-    doc.add_paragraph("This is a test paper document.")
-    doc.save(str(path))
-
-
-def _create_docx_with_headings(path):
-    doc = DocxDocument()
-    doc.add_heading("Section 1", level=1)
-    doc.add_heading("Subsection A", level=2)
-    doc.add_paragraph("Content under subsection A.")
-    doc.add_heading("Section 2", level=1)
-    doc.add_paragraph("Content under section 2.")
-    doc.save(str(path))
-
-
-def _create_docx_with_table(path):
-    doc = DocxDocument()
-    doc.add_heading("Results", level=1)
-    table = doc.add_table(rows=3, cols=3)
-    table.cell(0, 0).text = "Name"
-    table.cell(0, 1).text = "Score"
-    table.cell(0, 2).text = "Grade"
-    table.cell(1, 0).text = "Alice"
-    table.cell(1, 1).text = "95"
-    table.cell(1, 2).text = "A"
-    table.cell(2, 0).text = "Bob"
-    table.cell(2, 1).text = "82"
-    table.cell(2, 2).text = "B"
-    doc.save(str(path))
-
-
-def _create_docx_with_image(path):
-    doc = DocxDocument()
-    doc.add_heading("Figures", level=1)
-    doc.add_paragraph("Below is a sample figure:")
-
-    buf = io.BytesIO()
-    Image.new("RGB", (100, 50), color=(200, 200, 200)).save(buf, format="PNG")
-    buf.seek(0)
-    doc.add_picture(buf, width=Inches(2))
-
-    doc.add_paragraph("End of figures.")
-    doc.save(str(path))
-
-
-def _create_docx_empty(path):
-    doc = DocxDocument()
-    doc.save(str(path))
-
-
-def _create_docx_with_bullets(path):
-    doc = DocxDocument()
-    doc.add_heading("Findings", level=1)
-    doc.add_paragraph("First item", style="List Bullet")
-    doc.add_paragraph("Second item", style="List Bullet")
-    doc.add_paragraph("Third item", style="List Bullet")
-    doc.save(str(path))
-
-
-def _create_docx_with_numbers(path):
-    doc = DocxDocument()
-    doc.add_heading("Steps", level=1)
-    doc.add_paragraph("Step one", style="List Number")
-    doc.add_paragraph("Step two", style="List Number")
-    doc.add_paragraph("Step three", style="List Number")
-    doc.save(str(path))
 
 
 @pytest.fixture(scope="session")
-def fixtures_dir(tmp_path_factory):
-    d = tmp_path_factory.mktemp("fixtures")
+def text_fixtures_dir(tmp_path_factory):
+    d = tmp_path_factory.mktemp("text_fixtures")
+    _create_two_column_pdf(d / "two_column.pdf")
+    _create_running_header_pdf(d / "running_header.pdf")
+    _create_merged_heading_pdf(d / "merged_heading.pdf")
+    _create_line_blocks_pdf(d / "line_blocks.pdf")
+    _create_references_pdf(d / "references.pdf")
+    _create_partly_scanned_pdf(d / "partly_scanned.pdf")
+    _create_fully_scanned_pdf(d / "fully_scanned.pdf")
     _create_simple_pdf(d / "simple.pdf")
-    _create_multi_page_pdf(d / "multi_page.pdf")
-    _create_images_pdf(d / "images.pdf")
-    _create_captioned_image_pdf(d / "captioned.pdf")
-    _create_unlabeled_caption_pdf(d / "unlabeled_caption.pdf")
-    _create_vector_pdf(d / "vector.pdf")
-    _create_tiny_image_pdf(d / "tiny.pdf")
-    _create_simple_docx(d / "simple.docx")
-    _create_docx_with_headings(d / "headings.docx")
-    _create_docx_with_table(d / "table.docx")
-    _create_docx_with_image(d / "image.docx")
-    _create_docx_empty(d / "empty.docx")
-    _create_docx_with_bullets(d / "bullets.docx")
-    _create_docx_with_numbers(d / "numbers.docx")
+    (d / "paper.docx").write_bytes(b"not really a docx")
+    (d / "notes.txt").write_text("plain text", encoding="utf-8")
+    _create_blank_pages_pdf(d / "blank_pages.pdf")
     return d
 
 
-@pytest.fixture
-def simple_pdf(fixtures_dir):
-    return fixtures_dir / "simple.pdf"
+# ── crop_figure.py fixtures ───────────────────────────────────────────
+# A4 pages (595 x 842 pt). Coordinates below are exported so tests can check the
+# printed final box against the real figure/caption/paragraph positions.
+
+CROP_PAGE = (595, 842)
+CROP_LAYOUT = {
+    "header_bottom": 46,
+    "fig1": (100, 100, 495, 300),
+    "caption1_top": 312,
+    "para1": (60, 335, 535, 420),
+    "fig2": (100, 450, 495, 600),
+    "caption2_top": 612,
+    "text_fig": (100, 100, 495, 330),
+    "left_para": (60, 100, 285, 700),
+    "right_fig": (310, 100, 535, 300),
+}
 
 
-@pytest.fixture
-def multi_page_pdf(fixtures_dir):
-    return fixtures_dir / "multi_page.pdf"
+def _body_lines(n):
+    return " ".join(["This body paragraph explains the experimental setup in plain words."] * n)
 
 
-@pytest.fixture
-def images_pdf(fixtures_dir):
-    return fixtures_dir / "images.pdf"
+def _running_header(page, number):
+    page.insert_text((60, 40), "Journal of Testing Vol. 3", fontsize=8)
+    page.insert_text((290, 815), str(number), fontsize=8)
 
 
-@pytest.fixture
-def captioned_image_pdf(fixtures_dir):
-    return fixtures_dir / "captioned.pdf"
+def _drawn_figure(page, rect, label):
+    x0, y0, x1, y1 = rect
+    page.draw_rect(fitz.Rect(x0, y0, x1, y1), color=(0, 0, 0), width=1)
+    page.draw_rect(fitz.Rect(x0 + 20, y0 + 20, x0 + 120, y1 - 20), color=(0.2, 0.3, 0.8),
+                   fill=(0.6, 0.7, 0.9))
+    page.draw_rect(fitz.Rect(x1 - 120, y0 + 20, x1 - 20, y1 - 20), color=(0.2, 0.6, 0.3),
+                   fill=(0.7, 0.9, 0.7))
+    page.draw_line((x0 + 120, (y0 + y1) / 2), (x1 - 120, (y0 + y1) / 2), color=(0, 0, 0), width=2)
+    page.insert_text((x0 + 30, y0 + 15), f"{label} input", fontsize=7)
+    page.insert_text((x1 - 110, y0 + 15), f"{label} output", fontsize=7)
 
 
-@pytest.fixture
-def unlabeled_caption_pdf(fixtures_dir):
-    return fixtures_dir / "unlabeled_caption.pdf"
+def _create_crop_pdf(path):
+    lay = CROP_LAYOUT
+    doc = fitz.open()
+
+    # Page 1: two stacked drawn figures, each with a caption below and a body paragraph.
+    page = doc.new_page(width=CROP_PAGE[0], height=CROP_PAGE[1])
+    _running_header(page, 1)
+    _drawn_figure(page, lay["fig1"], "Stage")
+    page.insert_text((100, lay["caption1_top"] + 8), "Figure 1. Overview of the pipeline.",
+                     fontsize=9)
+    page.insert_textbox(lay["para1"], _body_lines(6), fontsize=10)
+    _drawn_figure(page, lay["fig2"], "Step")
+    page.insert_text((100, lay["caption2_top"] + 8), "Figure 2. A second stacked figure.",
+                     fontsize=9)
+    page.insert_textbox((60, 640, 535, 760), _body_lines(8), fontsize=10)
+
+    # Page 2: a text-only figure (bordered boxes of short bullet lines).
+    page = doc.new_page(width=CROP_PAGE[0], height=CROP_PAGE[1])
+    _running_header(page, 2)
+    x0, y0, x1, y1 = lay["text_fig"]
+    mid = (x0 + x1) / 2
+    for box, title in (((x0, y0, mid - 10, y1), "Requirement Types"),
+                       ((mid + 10, y0, x1, y1), "Requirement Formats")):
+        page.draw_rect(fitz.Rect(box), color=(0, 0, 0), width=1)
+        bullets = "\n".join(["- Functional requirements", "- Non-functional requirements",
+                             "- User requirements", "- Constraint requirements",
+                             "- Business requirements", "- Other"])
+        page.insert_textbox((box[0] + 8, box[1] + 8, box[2] - 8, box[3] - 8),
+                            title + "\n" + bullets, fontsize=8)
+    page.insert_text((100, 350), "Figure 3. Taxonomy of requirement inputs.", fontsize=9)
+    page.insert_textbox((60, 380, 535, 700), _body_lines(14), fontsize=10)
+
+    # Page 3: two columns; a figure in the right column next to a left-column paragraph.
+    page = doc.new_page(width=CROP_PAGE[0], height=CROP_PAGE[1])
+    _running_header(page, 3)
+    page.insert_textbox(lay["left_para"], _body_lines(20), fontsize=10)
+    _drawn_figure(page, lay["right_fig"], "Col")
+    page.insert_text((320, 318), "Figure 4. Right column figure.", fontsize=9)
+    page.insert_textbox((310, 340, 535, 700), _body_lines(12), fontsize=10)
+
+    doc.save(str(path))
+    doc.close()
 
 
-@pytest.fixture
-def vector_pdf(fixtures_dir):
-    return fixtures_dir / "vector.pdf"
+@pytest.fixture(name="layout")
+def layout_fixture():
+    """(page size, CROP_LAYOUT) of the generated crop.pdf, in points."""
+    return CROP_PAGE, CROP_LAYOUT
 
 
-@pytest.fixture
-def tiny_image_pdf(fixtures_dir):
-    return fixtures_dir / "tiny.pdf"
+@pytest.fixture(scope="session")
+def crop_pages_dir(tmp_path_factory):
+    """crop.pdf rendered with render_pages.py; returns <out>/crop/pages."""
+    import subprocess  # pylint: disable=import-outside-toplevel
+    d = tmp_path_factory.mktemp("crop_fixture")
+    pdf = d / "crop.pdf"
+    _create_crop_pdf(pdf)
+    result = subprocess.run(
+        [sys.executable, str(SCRIPTS_DIR / "render_pages.py"), "--input", str(pdf),
+         "--output-dir", str(d / "out")],
+        capture_output=True, text=True, encoding="utf-8", check=False)
+    assert result.returncode == 0, result.stderr
+    return d / "out" / "crop" / "pages"
 
 
-@pytest.fixture
-def output_dir(tmp_path):
-    d = tmp_path / "output"
-    d.mkdir()
-    return d
-
-
-@pytest.fixture
-def simple_docx(fixtures_dir):
-    return fixtures_dir / "simple.docx"
-
-
-@pytest.fixture
-def headings_docx(fixtures_dir):
-    return fixtures_dir / "headings.docx"
-
-
-@pytest.fixture
-def table_docx(fixtures_dir):
-    return fixtures_dir / "table.docx"
-
-
-@pytest.fixture
-def image_docx(fixtures_dir):
-    return fixtures_dir / "image.docx"
-
-
-@pytest.fixture
-def empty_docx(fixtures_dir):
-    return fixtures_dir / "empty.docx"
-
-
-@pytest.fixture
-def bullets_docx(fixtures_dir):
-    return fixtures_dir / "bullets.docx"
-
-
-@pytest.fixture
-def numbers_docx(fixtures_dir):
-    return fixtures_dir / "numbers.docx"
+def _create_blank_pages_pdf(path):
+    doc = fitz.open()
+    doc.new_page(width=612, height=792)  # letter
+    doc.new_page(width=595, height=842)  # A4
+    doc.new_page(width=612, height=792)
+    doc.save(str(path))
+    doc.close()

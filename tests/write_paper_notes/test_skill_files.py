@@ -4,7 +4,7 @@ from pathlib import Path
 SKILL_DIR = Path(__file__).resolve().parent.parent.parent / "write-paper-notes"
 SKILL_MD = SKILL_DIR / "SKILL.md"
 
-# A relative path into one of the skill's own subdirectories, e.g. `scripts/extract.py`.
+# A relative path into one of the skill's own subdirectories, e.g. `scripts/extract_text.py`.
 # Stops at `<` so placeholder paths like `references/<type>.md` resolve to their real parent dir.
 _SKILL_PATH = re.compile(r"(?<![\w<>/.-])((?:scripts|references|templates|assets)/[\w./-]*\w)")
 
@@ -21,7 +21,7 @@ class TestSkillFiles:
         missing = [p for p in _referenced_paths() if not (SKILL_DIR / p).exists()]
         assert not missing, f"SKILL.md references missing paths: {missing}"
 
-    def test_only_the_v2_instruction_files_remain(self):
+    def test_only_the_instruction_files_remain(self):
         instruction_files = sorted(
             p.relative_to(SKILL_DIR).as_posix()
             for p in SKILL_DIR.rglob("*.md")
