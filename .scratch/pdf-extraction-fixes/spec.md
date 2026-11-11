@@ -14,3 +14,7 @@ Status: needs-triage
 ## 下一步
 
 尚未整理成 spec。開始處理時，先用 `/grill-with-docs` 或 `/to-spec` 把這份筆記轉成正式 spec。
+
+## Comments
+
+- 已由 `.scratch/pdf-extraction-redesign/spec.md` 取代：改為只接受 PDF、文字層純文字加頁面圖、由 AI 寬鬆框選並由腳本剝邊裁切（見 `docs/adr/0001-pdf-only-ai-cropped-figures.md`）。
