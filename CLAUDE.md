@@ -56,16 +56,15 @@ Five independent CLI entrypoints in `pdf/scripts/`, each self-contained (no shar
 - `pdf_security.py` — subcommands `encrypt` / `decrypt` (AES-256 via `doc.save(encryption=...)`)
 
 ### `write-paper-notes/` skill
-A 4-phase pipeline documented in `write-paper-notes/SKILL.md`. Only Phase 1 is executed by code; Phases 2-4 are carried out by the invoking AI, driven by files under `references/` and `templates/`.
+A 3-step pipeline documented in `write-paper-notes/SKILL.md`. Only step 1 is executed by code; steps 2-3 are carried out by the invoking AI, driven by the skeleton and section mapping in `SKILL.md` plus the single style guide `references/style-guide.md`. Domain terms (筆記, 固定區塊, 子章節, 風格指南) are defined in the root `GLOSSARY.md`.
 
 1. **Extraction (code)** — `write-paper-notes/scripts/extract.py --input <file> [--output-dir <dir>]` dispatches by file extension to `PdfExtractor` (PyMuPDF) or `DocxExtractor` (python-docx). Both subclass the template-method ABC `DocumentExtractor` in `base.py` (`load()` → `do_extract()` → `close()`, directories set up before, `close()` guaranteed via `finally`). Output: Markdown on stdout + images written to `<output-dir>/<input-stem>/images/`.
    - `extract_pdf.py` derives heading levels from a font-size histogram across the whole document (`_build_header_id_map`), and reconstructs two-column academic-paper reading order via `elements.sort(key=lambda e: (round(e.bbox[0], -1), e.bbox[1]))` — bucketing by x-coordinate first (column) then y (top-to-bottom within a column), so the left column is read fully before the right column. Vector drawings are grouped into figures with `page.cluster_drawings()` and filtered by `_is_significant_drawing` to drop decorative lines.
    - The skill assumes the invoking AI can read images directly — there is no OCR/text-only-AI fallback (it was deliberately removed).
-2. **Content Analysis (AI)** — reads extracted images/text, detects paper type by emitting `PaperType: cs-ai-ml`, `PaperType: survey-review`, or omitting the line.
-3. **Organization (AI)** — loads `references/style-guide/common.md` plus `references/style-guide/<type>.md` and `templates/<type>.md` (or `assets/report-template.md` as a generic fallback when no type was detected), and writes `notes.md` into the same directory as `images/`.
-4. **Quality Review (AI)** — checks `notes.md` against `references/quality-checklist/common.md` plus the type-specific checklist, fixing and re-checking until every item passes.
+2. **Write (AI)** — reads the extracted text and images, then writes `notes.md` next to `images/` using one fixed skeleton for every paper (no paper-type detection): 介紹 (fixed subsections 背景/動機/研究問題/貢獻), 相關研究, 方法, 結果, 結論 (fixed subsections 主要發現/限制/未來方向). 相關研究/方法/結果 take subsections from the paper's own sections; empty sections are omitted. Notes are written in the user's language (asks when unclear).
+3. **Self-check (AI)** — checks `notes.md` against every rule in `references/style-guide.md` (the style guide doubles as the checklist), fixing and re-checking until every rule passes.
 
-Style guides and checklists are additive (`common.md` + `<type>.md`), so adding a new paper type only requires new `references/style-guide/<type>.md`, `references/quality-checklist/<type>.md`, and `templates/<type>.md` files.
+`tests/write_paper_notes/test_skill_files.py` guards the instruction files: every skill path referenced in `SKILL.md` must exist, and `SKILL.md` + `references/style-guide.md` must be the only `.md` files in the skill.
 
 ### Tests
 - `tests/pdf/` drives the five scripts via `subprocess.run([sys.executable, script, ...])` — CLI behavior only, no direct imports. Its OCR tests (`test_images_extractor.py`) are `@pytest.mark.skipif(not tesseract_available())`, so most of the suite passes without a Tesseract system install.

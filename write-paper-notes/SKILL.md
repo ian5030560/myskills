@@ -1,6 +1,6 @@
 ---
 name: write-paper-notes
-version: 1.2.0
+version: 2.0.0
 description: "Turn academic papers into organized Markdown notes. Supports PDF and DOCX."
 
 metadata:
@@ -13,94 +13,85 @@ metadata:
 user-invocable: true
 ---
 
-Extract text, images, and tables from PDF papers or DOCX documents and generate structured Markdown notes. Follow the pipeline below — each phase must complete before the next begins.
-
+Turn a PDF or DOCX paper into study notes (`notes.md`) with a fixed skeleton. Run the three steps in order.
 
 ## Setup
 
-### 1. Install Packages for Your Document
+```bash
+pip install PyMuPDF python-docx
+```
 
-Install based on your input file format:
+**Windows:** set `PYTHONIOENCODING=utf-8` in the *same* command as the script, since env vars don't persist across tool calls:
 
-- **.pdf**
-  ```bash
-  pip install PyMuPDF
-  python -c "import fitz; print('PyMuPDF OK')"
-  ```
-- **.docx**
-  ```bash
-  pip install python-docx
-  python -c "import docx; print('python-docx OK')"
-  ```
-
-### Windows UTF-8 Encoding (Required)
-
-Windows console default encoding (cp950/Big5) cannot handle UTF-8 characters in PDFs. Environment variables do not persist across separate tool calls, so set `PYTHONIOENCODING` in the *same* command as the script invocation (chained, not a separate call):
-
-**PowerShell:**
 ```powershell
 $env:PYTHONIOENCODING="utf-8"; python scripts/extract.py --input <file> [--output-dir <dir>]
 ```
 
-**CMD:**
-```cmd
-set PYTHONIOENCODING=utf-8 && python scripts/extract.py --input <file> [--output-dir <dir>]
-```
+## Steps
 
-## Pipeline
-
-### Phase 1 — Extraction
-
-**Supported formats:**
-- `.pdf` — text, tables, images, vector graphics (via PyMuPDF)
-- `.docx` — paragraphs, headings, tables, lists, inline images (via python-docx)
-
-Run the extraction script:
+### 1. Extract
 
 ```
 python scripts/extract.py --input <file> [--output-dir <dir>]
 ```
 
-Parameters:
-- `--input` (required): File path (.pdf or .docx)
-- `--output-dir` (optional): Parent directory (default: current dir)
+- `--input` (required): a `.pdf` or `.docx` file.
+- `--output-dir` (optional): parent directory, default the current directory.
 
-Outputs:
-- Extracted text in stdout
-- `images/` — extracted figures (original quality)
+The extracted text is printed to stdout; figures are written to `<output-dir>/<input-stem>/images/`.
 
-Output directory structure (Phase 3 saves `notes.md` here):
-  <output-dir>/<input-stem>/
-  ├── images/
-  └── (notes.md will be created here in Phase 3)
+### 2. Write
 
-### Phase 2 — Content Analysis
-Examine each image in `images/` and describe what it shows.
+Read the extracted text and look at every image in `images/`. Then write `<output-dir>/<input-stem>/notes.md` (next to `images/`) using the skeleton and section mapping below, following every rule in `references/style-guide.md`.
 
-Identify the paper's structure: sections, figures, tables, and their relationships.
+Decide the notes language first: the language the user is talking to you in. If you can't tell (e.g. they only gave a file path), ask before writing.
 
-**Detect paper type:** Output the detected paper type as the first line of your analysis:
-- `PaperType: cs-ai-ml` — for Computer Science / AI / Machine Learning papers
-- `PaperType: survey-review` — for Survey / Review papers
-- Omit this line if the type cannot be determined (falls back to generic template)
+### 3. Self-check
 
-### Phase 3 — Organization
-1. Look for `PaperType: <type>` at the start of Phase 2 output.
-2. Load `references/style-guide/common.md` (always).
-3. If a recognized PaperType was detected:
-   - Load `references/style-guide/<type>.md`
-   - Load `templates/<type>.md`
-4. If no PaperType was detected:
-   - Load `assets/report-template.md` (generic fallback)
-5. Reorganize extracted content into structured Markdown and save it as `notes.md` inside the output directory (i.e., `<output-dir>/<input-stem>/notes.md` — the same directory that contains the `images/` folder). Generate Mermaid diagrams where the style guide indicates.
+Check `notes.md` against every rule in `references/style-guide.md`. Fix each failure, then check again until every rule passes. Deliver `notes.md` to the user.
 
-### Phase 4 — Quality Review
-1. Load `references/quality-checklist/common.md` (always).
-2. If a recognized PaperType was detected, also load `references/quality-checklist/<type>.md`.
-3. Check `notes.md` against every item on all loaded checklists.
-4. For each failure, explain the issue and fix it.
-5. Re-check until all items pass.
+## Skeleton
 
-Deliver the final `notes.md` to the user.
+The Chinese names are canonical; translate every heading into the notes language.
 
+```
+# <論文標題>
+> 作者 · 年份 · 出處
 
+## 介紹
+### 背景
+### 動機
+### 研究問題
+### 貢獻
+## 相關研究
+## 方法
+## 結果
+## 結論
+### 主要發現
+### 限制
+### 未來方向
+```
+
+- The metadata line holds only what the paper states.
+- 介紹 and 結論 always use the fixed subsections above.
+- 相關研究, 方法 and 結果 take their subsections from the paper's own sections.
+- A section or subsection with nothing from the paper to put in it is omitted entirely, heading included.
+
+## Section mapping
+
+Where each part of the paper goes:
+
+| Paper section | Goes to |
+|:---|:---|
+| Abstract | Not written into the notes (read it for an overview) |
+| Introduction | The four 介紹 subsections |
+| Background / Preliminaries | 背景 |
+| Related Work / Literature Review | 相關研究 |
+| Method; for surveys, Research Methodology / Taxonomy / Key Approaches | 方法 |
+| Experiments / Discussion / Analysis; for surveys, Comparison / Benchmark | 結果 |
+| Conclusion | 主要發現 |
+| Limitations / Threats to Validity | 限制 |
+| Future Work / Open Challenges | 未來方向 |
+| Appendix | Only when the main text cites it and it's needed to understand the method or results; merged into that section |
+| References / Acknowledgments | Not included |
+| Anything else | The closest section, as a subsection |

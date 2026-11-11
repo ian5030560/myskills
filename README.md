@@ -22,24 +22,22 @@ npx skills add ian5030560/myskills --skill pdf
 
 ## write-paper-notes
 
-Extract content from PDF/DOCX academic papers and generate structured Markdown notes with type-aware templates and automated quality review.
+Extract content from PDF/DOCX academic papers and turn it into study notes with a fixed skeleton.
 
 ### Features
 
 - **CLI extractor** — Python scripts powered by PyMuPDF (PDF) and python-docx (DOCX)
-- **Type-aware templates** — CS/AI/ML and Survey/Review templates with section-specific guidance
 - **Figure extraction** — Images, tables, and vector graphics from PDFs; inline images from DOCX
-- **On-demand OCR** — Tesseract integration for text-only AIs; skip with `--no-ocr` for image-input AIs
-- **Diagnostic diagrams** — Mermaid timeline, mindmap, state diagram generated per style guide
-- **Modular style guide** — Common rules + type-specific rules for structure, formatting, and diagrams
-- **Quality gate** — Common + type-specific checklist verification before delivery
+- **Fixed skeleton** — Every paper gets the same sections: Introduction (background, motivation, research questions, contributions), Related Work, Method, Results, Conclusion (findings, limitations, future work); method and results follow the paper's own subsections
+- **No fabrication** — Only content found in the paper; empty sections are omitted
+- **Your language** — Notes are written in the language you use with the AI
+- **Single style guide** — One rule list used for both writing and self-checking
 
-### Pipeline (4 Phases)
+### Pipeline (3 Steps)
 
-1. **Extraction** — `scripts/extract.py --input <file>` outputs Markdown text + `images/`
-2. **Content Analysis** — AI identifies paper structure and detects paper type
-3. **Organization** — AI loads templates + style guides to produce `notes.md`
-4. **Quality Review** — AI validates against checklists, fixes issues iteratively
+1. **Extract** — `scripts/extract.py --input <file>` outputs Markdown text + `images/`
+2. **Write** — AI fills the skeleton following the style guide and saves `notes.md`
+3. **Self-check** — AI checks `notes.md` against the style guide and fixes issues until all rules pass
 
 ### Installation
 
