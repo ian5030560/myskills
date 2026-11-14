@@ -14,14 +14,16 @@ The repo root also contains an activated Python venv (`Include/`, `Lib/`, `Scrip
 
 Install dependencies:
 ```
-pip install PyMuPDF Pillow
+pip install PyMuPDF Pillow PyYAML
 ```
+PyYAML is only needed by `tests/test_skill_files.py` (frontmatter parsing).
 `pdf/` also requires the Tesseract system binary for OCR (per-OS install commands are in `pdf/SKILL.md`).
 
 Run tests:
 ```
 pytest tests/pdf/
 pytest tests/write_paper_notes/
+pytest tests/test_skill_files.py
 ```
 Run a single test with a pytest node id, e.g.:
 ```
@@ -32,7 +34,9 @@ Lint:
 ```
 pylint pdf/scripts/*.py --rcfile=.pylintrc
 pylint write-paper-notes/scripts/*.py --rcfile=.pylintrc
+pylint evaluate-paper/scripts/*.py --rcfile=.pylintrc
 ```
+Run lint from the repo root: `.pylintrc` resolves each skill's `scripts/` against the working directory.
 
 Install/uninstall a skill via the skills CLI:
 ```
@@ -71,12 +75,13 @@ A 4-step pipeline documented in `write-paper-notes/SKILL.md`, PDF only (any othe
 
 `crop_figure.py` and `render_pages.py` import shared helpers (running-header detection, PDF CLI parsing) from `extract_text.py`, so the header rule stays identical across scripts.
 
-`tests/write_paper_notes/test_skill_files.py` guards the instruction files: every skill path referenced in `SKILL.md` must exist, and `SKILL.md` + `references/style-guide.md` must be the only `.md` files in the skill.
+`tests/test_skill_files.py` checks every skill folder (a top-level, non-hidden directory with a `SKILL.md`) against the Agent Skills spec: frontmatter limited to `name`/`description`/`license`/`compatibility`/`metadata`/`allowed-tools` (`metadata` values must be strings, so `version` lives at `metadata.version`), `name` rules and folder match, description limits, `SKILL.md` under 500 lines, references one level deep, referenced paths exist, and no file under `references/`, `scripts/` or `assets/` that `SKILL.md` doesn't mention. Writing quality is not tested. Rule sources are in `.scratch/evaluate-paper/research/agent-skills-spec.md`.
 
 ### Tests
 - `tests/pdf/` drives the five scripts via `subprocess.run([sys.executable, script, ...])` — CLI behavior only, no direct imports. Its OCR tests (`test_images_extractor.py`) are `@pytest.mark.skipif(not tesseract_available())`, so most of the suite passes without a Tesseract system install.
 - `tests/write_paper_notes/` also drives its three scripts via subprocess only. Crop trimming is asserted through the final box `crop_figure.py` prints, compared with the known layout of a generated PDF (`CROP_LAYOUT` in `conftest.py`) — no image analysis.
-- Each suite's `conftest.py` prepends its own skill's `scripts/` dir to `sys.path`; `.pylintrc` does the same for `write-paper-notes/scripts` via `init-hook` (only that skill is linted this way).
+- Each suite's `conftest.py` prepends its own skill's `scripts/` dir to `sys.path`; `.pylintrc` adds every `*/scripts` dir (relative to the working directory) via `init-hook`.
+- `tests/test_skill_files.py` is repo-wide rather than per-skill; its negative cases build throwaway skill folders in `tmp_path` to prove each check fails on a violation.
 - All test fixtures (sample PDFs) are generated at runtime inside `conftest.py` helpers (e.g. `_create_simple_pdf`, `_create_crop_pdf`) — there are no static fixture files on disk.
 
 ## Agent skills

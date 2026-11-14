@@ -1,16 +1,8 @@
 ---
 name: write-paper-notes
-version: 3.0.0
 description: "Turn academic papers (PDF) into organized Markdown notes."
-
 metadata:
-  starchild:
-    emoji: "📄"
-    skillKey: write-paper-notes
-    requires:
-      env: []
-      bins: [python]
-user-invocable: true
+  version: "3.0.0"
 ---
 
 Turn a PDF paper into study notes (`notes.md`) with a fixed skeleton. Run the four steps in order.

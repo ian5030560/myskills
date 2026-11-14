@@ -1,6 +1,9 @@
 [MASTER]
-# Add write-paper-notes/scripts to the import path
-init-hook='import sys; sys.path.insert(0, "C:/myskills/write-paper-notes/scripts")'
+# Put every skill's scripts/ folder on the import path so scripts can import each other and
+# tests can import them. __file__ is not defined inside init-hook, so this resolves
+# "*/scripts" against the working directory: run pylint from the repo root (as CLAUDE.md shows).
+# glob skips hidden folders such as .agents, so vendored skills are not picked up.
+init-hook='import glob, os, sys; sys.path[:0] = list(map(os.path.abspath, glob.glob("*/scripts")))'
 
 [TYPECHECK]
 # Known third-party modules

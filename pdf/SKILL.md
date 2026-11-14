@@ -1,20 +1,8 @@
 ---
 name: pdf
-version: 2.0.0
 description: "Complete PDF lifecycle toolkit: extract text/images with OCR, merge/split/rotate pages, manage metadata, and encrypt/decrypt. All powered by PyMuPDF."
-
 metadata:
-  starchild:
-    emoji: "📄"
-    skillKey: pdf
-    requires:
-      env: []
-      bins: [python]
-    install:
-      - kind: system
-        package: tesseract-ocr
-
-user-invocable: true
+  version: "2.0.0"
 ---
 
 Extract, manipulate, and secure PDFs using PyMuPDF (fitz) with built-in Tesseract OCR.
