@@ -104,6 +104,21 @@ class FakeApi:
         self.serve(f"/crossref/works/{doi}",
                    body if body is not None else {"status": "ok", "message": message}, status)
 
+    def serve_openalex_search(self, results, status=200):
+        """Title search results; each is {"doi", "title", "year"} (doi may be None)."""
+        self.serve("/openalex/works", {"meta": {"count": len(results)}, "results": [
+            {"id": f"https://openalex.org/W{i}", "title": r["title"],
+             "doi": f"https://doi.org/{r['doi']}" if r["doi"] else None,
+             "publication_year": r["year"]}
+            for i, r in enumerate(results)
+        ]}, status)
+
+    def serve_crossref_search(self, results, status=200):
+        self.serve("/crossref/works", {"status": "ok", "message": {"items": [
+            {"DOI": r["doi"], "title": [r["title"]], "issued": {"date-parts": [[r["year"], 1, 1]]}}
+            for r in results
+        ]}}, status)
+
     def serve_everything(self, doi=DOI, **overrides):
         """A healthy world: both works and the journal resolve and nothing is retracted."""
         self.serve_openalex_work(doi, **overrides.get("openalex", {}))
@@ -141,3 +156,10 @@ def run_fetch(fake_api, tmp_path):
 def parse_output(result):
     """Decode stdout of a finished run as the JSON document the script prints."""
     return json.loads(result.stdout.decode("utf-8"))
+
+
+def run_ok(run_fetch, *args, **kwargs):
+    """Run the script, require exit code 0, and return its parsed JSON."""
+    result = run_fetch(*args, **kwargs)
+    assert result.returncode == 0, result.stderr.decode("utf-8", "replace")
+    return parse_output(result)

@@ -2,13 +2,7 @@
 
 import pytest
 
-from conftest import DOI, SOURCE_SHORT_ID, parse_output
-
-
-def run_ok(run_fetch, *args, **kwargs):
-    result = run_fetch(*args, **kwargs)
-    assert result.returncode == 0, result.stderr.decode("utf-8", "replace")
-    return parse_output(result)
+from conftest import DOI, SOURCE_SHORT_ID, parse_output, run_ok
 
 
 class TestSourcesSideBySide:
