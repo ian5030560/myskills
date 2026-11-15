@@ -4,9 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository overview
 
-"myskills" is a personal collection of Agent Skills, distributed via `npx skills add ian5030560/myskills --skill <name>`. Two independent skills live here:
+"myskills" is a personal collection of Agent Skills, distributed via `npx skills add ian5030560/myskills --skill <name>`. Three independent skills live here:
 - `pdf/` — five standalone PDF CLI tools (PyMuPDF/fitz + Tesseract OCR)
 - `write-paper-notes/` — PDF → structured Markdown paper-notes pipeline
+- `evaluate-paper/` — PDF paper appraisal: identity card, external assessment, content judgement, usage label
 
 The repo root also contains an activated Python venv (`Include/`, `Lib/`, `Scripts/`, `pyvenv.cfg`) and a vendored `.agents/skills/skill-creator/` — both gitignored, not part of the project source.
 
@@ -23,6 +24,7 @@ Run tests:
 ```
 pytest tests/pdf/
 pytest tests/write_paper_notes/
+pytest tests/evaluate_paper/
 pytest tests/test_skill_files.py
 ```
 Run a single test with a pytest node id, e.g.:
@@ -75,11 +77,23 @@ A 4-step pipeline documented in `write-paper-notes/SKILL.md`, PDF only (any othe
 
 `crop_figure.py` and `render_pages.py` import shared helpers (running-header detection, PDF CLI parsing) from `extract_text.py`, so the header rule stays identical across scripts.
 
+### `evaluate-paper/` skill
+Appraises one PDF paper against the user's research question; steps are in `evaluate-paper/SKILL.md`. PDF only, no text-extraction script (the AI reads the PDF directly). Terms are in `GLOSSARY.md`; decisions are in ADRs 0002 (appraisal without scores) and 0003 (keyless script, keyed metrics via the user's own MCP); the spec is `.scratch/evaluate-paper/spec.md`.
+
+1. **Article ID card (AI)** — bibliographic details, DOI, venue, article type judged from content, version read, review status; identifies only.
+2. **External assessment** — two parts:
+   - *Checklist (AI):* `references/checklist-selection.md` picks one by study design — CASP RCT/cohort/qualitative/systematic review (verbatim, CC BY-NC-SA 4.0), AMSTAR 2 (systematic reviews of healthcare interventions), MMAT (paraphrased, registered copyright) — or none, in which case the report says so. Answers carry a paper location and are never summed.
+   - *Metrics (code):* `scripts/fetch_metrics.py` (stdlib only, keyless) takes `--doi` or `--title` (candidates only) and prints OpenAlex and Crossref article numbers side by side, OpenAlex journal `2yr_mean_citedness` (JIF-style, not JIF), a `retraction` verdict (retracted / no_record_found / unknown), and `updates`; failures are named per source. Keyed data (OpenAlex after quota exhaustion, JIF, CiteScore) comes only from the user's own MCP, matched by capability and never named or recommended; without one the report writes 未取得.
+3. **Content judgement (AI)** — the five rules in `references/content-judgement.md`; each outcome is ok / concern / not enough information with a location.
+4. **Conclusion** — usage label 主報告 / 背景 / 比較 / 暫不使用 first, then 仍需確認. No scores; only retraction can change the label.
+5. **Write and save** — the report is written to `<temp>/evaluate-paper/<pdf-stem>/appraisal.md` (with `metrics.json`, reused if queried the same day), self-checked against `references/report-format.md` and `content-judgement.md`, shown in full, and copied to `<output-dir>/<pdf-stem>/appraisal.md` only when the user agrees.
+
 `tests/test_skill_files.py` checks every skill folder (a top-level, non-hidden directory with a `SKILL.md`) against the Agent Skills spec: frontmatter limited to `name`/`description`/`license`/`compatibility`/`metadata`/`allowed-tools` (`metadata` values must be strings, so `version` lives at `metadata.version`), `name` rules and folder match, description limits, `SKILL.md` under 500 lines, references one level deep, referenced paths exist, and no file under `references/`, `scripts/` or `assets/` that `SKILL.md` doesn't mention. Writing quality is not tested. Rule sources are in `.scratch/evaluate-paper/research/agent-skills-spec.md`.
 
 ### Tests
 - `tests/pdf/` drives the five scripts via `subprocess.run([sys.executable, script, ...])` — CLI behavior only, no direct imports. Its OCR tests (`test_images_extractor.py`) are `@pytest.mark.skipif(not tesseract_available())`, so most of the suite passes without a Tesseract system install.
 - `tests/write_paper_notes/` also drives its three scripts via subprocess only. Crop trimming is asserted through the final box `crop_figure.py` prints, compared with the known layout of a generated PDF (`CROP_LAYOUT` in `conftest.py`) — no image analysis.
+- `tests/evaluate_paper/` runs `fetch_metrics.py` as a subprocess against a fake local HTTP server that plays OpenAlex (`/openalex`) and Crossref (`/crossref`) via `--api-base`; tests never touch the real network. Only the script is tested; the checklists, content rules and report format are written guidance and are checked by `tests/test_skill_files.py` for structure only.
 - Each suite's `conftest.py` prepends its own skill's `scripts/` dir to `sys.path`; `.pylintrc` adds every `*/scripts` dir (relative to the working directory) via `init-hook`.
 - `tests/test_skill_files.py` is repo-wide rather than per-skill; its negative cases build throwaway skill folders in `tmp_path` to prove each check fails on a violation.
 - All test fixtures (sample PDFs) are generated at runtime inside `conftest.py` helpers (e.g. `_create_simple_pdf`, `_create_crop_pdf`) — there are no static fixture files on disk.

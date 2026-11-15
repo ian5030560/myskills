@@ -10,6 +10,7 @@ npx skills add ian5030560/myskills --skill <name>
 |-------|--------------|
 | [`pdf`](#pdf) | Extract, manipulate and secure PDFs |
 | [`write-paper-notes`](#write-paper-notes) | Turn a PDF paper into structured study notes |
+| [`evaluate-paper`](#evaluate-paper) | Appraise a PDF paper against your research question and say how to use it |
 
 ## pdf
 
@@ -75,12 +76,48 @@ images/      # cropped figures linked from notes.md
 npx skills add ian5030560/myskills --skill write-paper-notes
 ```
 
+## evaluate-paper
+
+Appraise one PDF paper against your research question before you rely on it. Give the AI the PDF path and your research question. The report gives a **usage label** (main report, background, comparison, or not for now) with reasons. It never gives a score or a grade.
+
+Suggested order: appraise first with `evaluate-paper`, then write notes with `write-paper-notes` for the papers worth keeping.
+
+### What it does
+
+1. **Article ID card** — bibliographic details, DOI, venue, article type, version read, review status
+2. **External assessment** — a standard checklist chosen by study design (CASP, AMSTAR 2 or MMAT; none if no checklist fits), plus article and journal metrics from OpenAlex and Crossref and a retraction check
+3. **Content judgement** — source and version, whether the content answers your question, whether the evidence supports the claims, measurement, and scope of inference
+4. **Conclusion** — the usage label first, then what you still need to confirm yourself
+
+Only a retraction can change the label on its own; citation counts and journal numbers are side clues.
+
+### Metrics and MCP (optional)
+
+The script queries OpenAlex and Crossref without a key. If your environment has MCP tools for OpenAlex, Scopus or Journal Citation Reports, the AI can use them to fill in more (for example JIF or CiteScore) and label those numbers with their source. Without them the appraisal is still complete: missing numbers are marked "not obtained" with where to look them up. The skill does not install, configure or recommend any MCP, and never asks for a key or an email address.
+
+### Output
+
+The report is written to a temporary folder and shown in the conversation. It is copied to `<output-dir>/<pdf-stem>/appraisal.md` only when you agree (or when you asked to save up front). Metrics fetched on the same day are reused.
+
+### Requirements
+
+- Python 3 (standard library only) and network access
+- An AI that can read the PDF
+
+### Installation
+
+```bash
+npx skills add ian5030560/myskills --skill evaluate-paper
+```
+
 ## Development
 
 ```bash
-pip install PyMuPDF Pillow pytest
+pip install PyMuPDF Pillow PyYAML pytest
 pytest tests/pdf/
 pytest tests/write_paper_notes/
+pytest tests/evaluate_paper/
+pytest tests/test_skill_files.py
 ```
 
 All test PDFs are generated at runtime; no fixture files are stored in the repo. Shortcuts for the skills CLI:
