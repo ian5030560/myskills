@@ -36,7 +36,7 @@ Record, from the paper itself: bibliographic details and DOI, publication venue,
 
 ### 2. External assessment
 
-**Checklist by study design.** Pick the standard checklist for the paper's design. If none fits, the report says so and only the content judgement is done. This version has no checklist files yet: for design-rigour items, write "待檢查表 (checklist not yet available)" in the report's language instead of improvising questions.
+**Checklist by study design.** Choose and fill in the standard checklist following `references/checklist-selection.md`. The checklist files are `references/casp-rct.md`, `references/casp-cohort.md`, `references/casp-qualitative.md`, `references/casp-systematic-review.md` (CASP, CC BY-NC-SA 4.0), `references/amstar2.md` (systematic reviews of healthcare interventions) and `references/mmat.md` (other empirical and mixed methods studies). Open only the one you need. Every question gets an answer and the paper's location; answers are never added up into a score. If no checklist fits the design, the report says so and only the content judgement is done; do not improvise questions.
 
 **External metrics.** Run the metrics script:
 
