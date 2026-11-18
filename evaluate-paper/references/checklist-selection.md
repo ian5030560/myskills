@@ -24,6 +24,10 @@ If two rows fit, use the more specific one and say why. A mixed methods study us
 
 - Answer every question of the chosen checklist, in order, without skipping any. Use the answer options the checklist file lists.
 - Each answer carries the paper's location and a short basis (section, page, table or figure). When the paper does not say, answer "Can't tell" (AMSTAR 2: No, with what is missing written down). Write "無法判斷" (cannot tell) in the report language where the file says Can't tell.
+- **Not applicable.** When a question does not suit this study's design, answer "不適用：<reason>" (not applicable, with the reason in one sentence) instead of Can't tell. Not applicable means the question does not fit the design; Can't tell means the paper does not give the information. Do not use it to skip a question that fits but is hard to answer. AMSTAR 2 has its own "No meta-analysis conducted" option and does not use this.
+  Questions that are often not applicable:
+  - CASP systematic review, question 7 (precision): no statistical combination, only counts or descriptive tables.
+  - CASP systematic review, question 10 (benefits worth the harms and costs): no intervention, for example an association or a descriptive review.
 - Judge relative to the user's research question where a question asks about "your population" or "your context".
 - Never add answers up into a score, a percentage or a grade. Do not turn a count of Yes into a verdict.
 - Where a checklist asks for an appraisal summary or an overall confidence level, write it as that file describes.
