@@ -25,7 +25,7 @@ Translate every heading into the report language.
 
 ## Rules
 
-1. **Conclusion first.** The first section after the title is the conclusion: one usage label (主報告 / 背景 / 比較 / 暫不使用 in the report language) plus one or two sentences of reason.
+1. **Conclusion first.** The first section after the title is the conclusion: one usage label (主報告 / 背景 / 比較 / 暫不使用 in the report language) plus one or two sentences of reason. The reason names the content-judgement items that decided the label (for example "item 2 and item 3") and does not contradict them: 主報告 needs item 2 ok and no concern in items 3 to 5 on a claim the user will rely on, and when two labels both fit the report names the more cautious one and says why the other did not apply.
 2. **Retraction leads.** If any source reported a retraction, the label is 暫不使用 and the first sentence of the reason says so.
 3. **Relative to the question.** The research question is quoted under the title, and the reason refers to it.
 4. **No scores.** No numbers, grades, stars, rankings or percentages stand in for a judgement. Raw metric values from the metrics script may appear, labelled as clues.

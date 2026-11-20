@@ -79,12 +79,14 @@ Read the paper and apply every rule in `references/content-judgement.md`. Each j
 
 ### 4. Conclusion
 
-Give the usage label relative to the user's research question, one of:
+Give the usage label relative to the user's research question. Decide it from the content judgement (and the checklist), not by feel and never by counting outcomes. Go down this list and stop at the first label that fits:
 
-- **主報告 (main report)**: the paper can carry the user's argument.
-- **背景 (background)**: it supports context but cannot carry the argument.
-- **比較 (comparison)**: it is useful to set against other work.
-- **暫不使用 (not for now)**: do not use until the open problem is resolved.
+1. **暫不使用 (not for now)**: a source reported a retraction, or an open problem you cannot resolve here would change how the paper may be used (for example content judgement item 1 found that the title, DOI or version cannot be matched). Do not use it until that is resolved.
+2. **背景 (background)**: it frames the topic (definitions, motivation, an overview) but its own findings cannot be cited as evidence for the user's question: item 2 is only adjacent to the question, or a concern in items 3, 4 or 5 means its specific results should not be relied on.
+3. **比較 (comparison)**: it answers the question for one part or one setting, and its results hold within that scope, so it can stand as one case beside other work. Item 2 may be a concern about scope or setting; items 3, 4 and 5 may have concerns that limit how far the results go, but none that undermines them inside that scope. The report says which scope the results hold in.
+4. **主報告 (main report)**: it can carry the user's argument: item 2 is ok, and no concern in items 3, 4 or 5 touches a claim the user will rely on.
+
+If two labels both seem to fit, take the more cautious one (the order above, 暫不使用 most cautious), and say in the reason which label nearly applied and why it did not. The reason names the content judgement items that decided it (for example "item 2 and item 3"). A label must not contradict its items: a paper whose item 2 is a concern, or with a concern in items 3 to 5 on a claim the user relies on, is not 主報告. A concern that does not touch what the user will use does not block it; say so. The label is not a score: no counting of ok and concern.
 
 Write the labels in the report's language. Add the reason in one or two sentences and a list of "仍需確認" (still to confirm): the things the user must check themselves, including every metric not obtained.
 
