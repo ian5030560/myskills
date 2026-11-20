@@ -95,6 +95,61 @@ def _create_references_pdf(path):
     doc.close()
 
 
+def _add_glyph_name_page(doc, differences, lines):
+    """Add a page whose text uses a Helvetica encoding with custom glyph names.
+
+    differences: glyph names for codes 1, 2, ... (e.g. "fi", "sfthyphen"). Extraction maps
+    them to the real Unicode characters (U+FB01, U+00AD), which the standard fonts cannot
+    otherwise produce. lines: (y, text) pairs; use \001, \002 ... for the custom codes.
+    """
+    page = doc.new_page()
+    font = doc.get_new_xref()
+    doc.update_object(
+        font, "<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding<</Type/Encoding"
+              f"/BaseEncoding/WinAnsiEncoding/Differences[1/{'/'.join(differences)}]>>>>")
+    doc.xref_set_key(page.xref, "Resources", f"<</Font<</LF {font} 0 R>>>>")
+    contents = doc.get_new_xref()
+    doc.update_object(contents, "<<>>")
+    stream = " ".join(f"BT /LF 11 Tf 72 {842 - y} Td ({text}) Tj ET" for y, text in lines)
+    doc.update_stream(contents, stream.encode("ascii"))
+    doc.xref_set_key(page.xref, "Contents", f"{contents} 0 R")
+
+
+def _create_ligature_pdf(path):
+    """Page 1 stores ligature glyphs (fi fl ff ffi ffl) the way real papers do, so
+    extraction yields U+FB00-FB04. Page 2 holds other special characters that must pass
+    through unchanged."""
+    doc = fitz.open()
+    _add_glyph_name_page(doc, ["fi", "fl", "ff", "ffi", "ffl"],
+                         [(100, "The speci\001c e\003ect of a \002ux o\004ce su\005e")])
+    other = doc.new_page()
+    other.insert_text((72, 100), "（全形標點）α≥β 測試", fontname="china-s", fontsize=11)
+    doc.save(str(path))
+    doc.close()
+
+
+def _create_hyphenation_pdf(path):
+    """Words split by a trailing hyphen across separate paragraphs (lines 40 pt apart, so
+    never one block), across a page break, and with soft/Unicode hyphens."""
+    doc = fitz.open()
+    _add_glyph_name_page(doc, ["sfthyphen", "hyphentwo"], [
+        (100, "A word breaks between paragraphs: addi-"),
+        (140, "tional strength is gained."),
+        (180, "The compound state-of-the-"),
+        (220, "Art Museum opens today."),
+        (260, "See pages 12-"),
+        (300, "34 for details."),
+        (340, "Haupt\001"),
+        (380, "bestandteile are listed, and so are bestand\002"),
+        (420, "teile of another kind."),
+        (780, "A word split across pages: hyphen-"),
+    ])
+    page = doc.new_page()
+    page.insert_text((72, 100), "ated text starts the next page.", fontsize=11)
+    doc.save(str(path))
+    doc.close()
+
+
 def _add_image_only_page(doc):
     page = doc.new_page()
     tmp = fitz.open()
@@ -133,6 +188,8 @@ def text_fixtures_dir(tmp_path_factory):
     _create_partly_scanned_pdf(d / "partly_scanned.pdf")
     _create_fully_scanned_pdf(d / "fully_scanned.pdf")
     _create_simple_pdf(d / "simple.pdf")
+    _create_ligature_pdf(d / "ligatures.pdf")
+    _create_hyphenation_pdf(d / "hyphenation.pdf")
     (d / "paper.docx").write_bytes(b"not really a docx")
     (d / "notes.txt").write_text("plain text", encoding="utf-8")
     _create_blank_pages_pdf(d / "blank_pages.pdf")

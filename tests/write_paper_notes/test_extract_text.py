@@ -125,6 +125,41 @@ class TestText:
         _, text = _extract(text_fixtures_dir / "merged_heading.pdf", tmp_path)
         assert not any(line.startswith("#") for line in text.splitlines())
 
+    def test_ligature_glyphs_are_expanded_to_letters(self, text_fixtures_dir, tmp_path):
+        _, text = _extract(text_fixtures_dir / "ligatures.pdf", tmp_path)
+        page1 = text.split("<!-- p2 -->", 1)[0]
+        assert "The specific effect of a flux office suffle" in page1
+        assert not any(0xFB00 <= ord(char) <= 0xFB06 for char in text)
+
+    def test_other_special_characters_are_left_alone(self, text_fixtures_dir, tmp_path):
+        _, text = _extract(text_fixtures_dir / "ligatures.pdf", tmp_path)
+        page2 = text.split("<!-- p2 -->", 1)[1]
+        assert "（全形標點）α≥β 測試" in page2
+
+    def test_hyphenated_word_split_across_paragraphs_is_rejoined(self, text_fixtures_dir,
+                                                                 tmp_path):
+        _, text = _extract(text_fixtures_dir / "hyphenation.pdf", tmp_path)
+        assert "A word breaks between paragraphs: additional strength is gained." in text
+        assert "addi-" not in text
+
+    def test_hyphen_before_uppercase_or_digit_is_kept(self, text_fixtures_dir, tmp_path):
+        _, text = _extract(text_fixtures_dir / "hyphenation.pdf", tmp_path)
+        assert "state-of-the-" in text and "Art Museum opens today." in text
+        assert "See pages 12-" in text and "34 for details." in text
+
+    def test_soft_and_unicode_hyphens_at_line_end_are_rejoined(self, text_fixtures_dir,
+                                                               tmp_path):
+        _, text = _extract(text_fixtures_dir / "hyphenation.pdf", tmp_path)
+        assert "Hauptbestandteile are listed" in text
+        assert "and so are bestandteile of another kind." in text
+        assert "­" not in text and "‐" not in text
+
+    def test_hyphenated_word_is_not_rejoined_across_pages(self, text_fixtures_dir, tmp_path):
+        _, text = _extract(text_fixtures_dir / "hyphenation.pdf", tmp_path)
+        before, after = text.split("<!-- p2 -->", 1)
+        assert before.rstrip().endswith("hyphen-")
+        assert after.strip().startswith("ated text starts the next page.")
+
     def test_page_without_text_layer_is_flagged(self, text_fixtures_dir, tmp_path):
         _, text = _extract(text_fixtures_dir / "partly_scanned.pdf", tmp_path)
         before, after = text.split("<!-- p2 -->", 1)

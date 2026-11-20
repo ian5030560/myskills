@@ -32,6 +32,12 @@ _HEADING_RE = re.compile(r"^(\d{1,2}\.(\d{1,2}\.?)*|\d{1,2})\s+[A-Z].*\D$")
 _PAGE_NUMBER_RE = re.compile(r"\d+")
 _CAPTION_RE = re.compile(r"^\s*(figure|fig\.?|table)\s*\d", re.I)
 _BULLET_RE = re.compile(r"^\s*[•●▪◦·\-–—*]\s")
+# Latin ligature code points (U+FB00-FB06) become plain letters, so quoting or searching the
+# paper's words works. An explicit table rather than NFKC, which would also rewrite
+# full-width punctuation, superscripts and other characters.
+_HYPHENS = "-‐‑­"   # hyphen-minus, Unicode hyphens, soft hyphen
+_LIGATURES = {0xFB00: "ff", 0xFB01: "fi", 0xFB02: "fl", 0xFB03: "ffi", 0xFB04: "ffl",
+              0xFB05: "st", 0xFB06: "st"}
 
 
 def _normalize(text: str) -> str:
@@ -39,7 +45,7 @@ def _normalize(text: str) -> str:
 
 
 def _line_text(line: dict) -> str:
-    return "".join(span["text"] for span in line["spans"]).strip()
+    return "".join(span["text"] for span in line["spans"]).translate(_LIGATURES).strip()
 
 
 def block_text(block: dict) -> str:
@@ -104,16 +110,38 @@ def _is_heading_line(text: str) -> bool:
     return len(text) <= HEADING_MAX_CHARS and bool(_HEADING_RE.match(text))
 
 
+def _hyphen_break(text: str, following: str) -> bool:
+    """Whether text ends in a line-break hyphen after a letter and following continues the
+    word in lowercase. Before an uppercase letter or a digit the hyphen is kept (a name or a
+    number range), which is also why genuine compounds that wrap at their hyphen
+    ("state-of-the-" / "art") lose it: the accepted trade-off."""
+    return (bool(text) and text[-1] in _HYPHENS and text[-2:-1].isalpha()
+            and following[:1].islower())
+
+
 def _join_lines(lines: list) -> str:
     text = ""
     for line in lines:
         if not text:
             text = line
-        elif text.endswith("-") and line[:1].islower():
+        elif _hyphen_break(text, line):
             text = text[:-1] + line
         else:
             text += " " + line
     return text
+
+
+def _rejoin_hyphenated(paragraphs: list) -> list:
+    """Rejoin words split across consecutive paragraphs of one page, e.g. when the second
+    half sits in another block that failed the paragraph-continuation test, or in the next
+    column. Never applied across pages: each page is processed on its own."""
+    merged = []
+    for text in paragraphs:
+        if merged and _hyphen_break(merged[-1], text):
+            merged[-1] = merged[-1][:-1] + text
+        else:
+            merged.append(text)
+    return merged
 
 
 def _block_paragraphs(block: dict) -> list:
@@ -184,8 +212,10 @@ def extract(pdf_path: Path) -> tuple:
                 continue
             drop = running_blocks(blocks, page.rect.height, running)
             body = [h for h in (_horizontal(b) for b in blocks if b not in drop) if h]
+            paragraphs = []
             for paragraph in _join_blocks(_reading_order(body, page.rect.width)):
-                out.extend(_block_paragraphs(paragraph))
+                paragraphs.extend(_block_paragraphs(paragraph))
+            out.extend(_rejoin_hyphenated(paragraphs))
         return "\n\n".join(out) + "\n", len(pages), no_text
 
 
