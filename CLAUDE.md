@@ -37,6 +37,7 @@ Lint:
 pylint pdf/scripts/*.py --rcfile=.pylintrc
 pylint write-paper-notes/scripts/*.py --rcfile=.pylintrc
 pylint evaluate-paper/scripts/*.py --rcfile=.pylintrc
+pylint benchmarks/olmocr/*.py --rcfile=.pylintrc
 ```
 Run lint from the repo root: `.pylintrc` resolves each skill's `scripts/` against the working directory.
 
@@ -89,6 +90,9 @@ Appraises one PDF paper against the user's research question; steps are in `eval
 5. **Write and save** — the report is written to `<temp>/evaluate-paper/<pdf-stem>/appraisal.md` (with `metrics.json`, reused if queried the same day), self-checked against `references/report-format.md` and `content-judgement.md`, shown in full, and copied to `<output-dir>/<pdf-stem>/appraisal.md` only when the user agrees.
 
 `tests/test_skill_files.py` checks every skill folder (a top-level, non-hidden directory with a `SKILL.md`) against the Agent Skills spec: frontmatter limited to `name`/`description`/`license`/`compatibility`/`metadata`/`allowed-tools` (`metadata` values must be strings, so `version` lives at `metadata.version`), `name` rules and folder match, description limits, `SKILL.md` under 500 lines, references one level deep, referenced paths exist, and no file under `references/`, `scripts/` or `assets/` that `SKILL.md` doesn't mention. Writing quality is not tested. Rule sources are in `.scratch/evaluate-paper/research/agent-skills-spec.md`.
+
+### `benchmarks/olmocr/`
+A manual development tool (not a skill, not pytest) that scores `extract_text.py` on the `multi_column` (order) and `long_tiny_text` (present) categories of olmOCR-Bench with the official scorer, and compares each run with the committed `baseline.json`. `setup_venv.py --python <3.11+>` builds the scorer's own gitignored `.venv`, `fetch.py` downloads the data into the gitignored `data/`, `run.py` extracts, scores and prints the delta (newly failing/passing test IDs); `run.py --update-baseline` accepts a run. PDFs with no text layer are excluded and counted. Details, exclusions and Windows workarounds are in `benchmarks/olmocr/README.md`; the spec is `.scratch/olmocr-bench/spec.md`.
 
 ### Tests
 - `tests/pdf/` drives the five scripts via `subprocess.run([sys.executable, script, ...])` — CLI behavior only, no direct imports. Its OCR tests (`test_images_extractor.py`) are `@pytest.mark.skipif(not tesseract_available())`, so most of the suite passes without a Tesseract system install.

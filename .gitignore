@@ -11,3 +11,6 @@ __pycache__
 *.pdf
 *.PDF
 *.docx
+
+/benchmarks/olmocr/data/
+/benchmarks/olmocr/.venv/
